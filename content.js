@@ -1,5 +1,5 @@
 /**
- * YouTube Music & Video Looper - Content Script Core (content.js)
+ * YouTube Music & Video Looper - Content Script (content.js)
  * Compatível com Manifest V3, Modo Normal, Teatro, Fullscreen e Miniplayer
  */
 (function (global) {
@@ -7,6 +7,11 @@
 
   // 1. Gerenciamento de Estado Interno
   let isLoopActive = false;
+  let isGlobalListenersAttached = false;
+  let observerInstance = null;
+  let observerDebounceTimeout = null;
+  let toastTimeout = null;
+  let toastHideTimeout = null;
 
   /**
    * Obtém o estado atual de repetição
@@ -112,25 +117,186 @@
   }
 
   /**
+   * Localiza o elemento <video> principal ativo no player do YouTube
+   * @returns {HTMLVideoElement|null}
+   */
+  function getVideoElement() {
+    if (typeof document === 'undefined') return null;
+
+    return (
+      document.querySelector('video.html5-main-video') ||
+      document.querySelector('.html5-video-player video') ||
+      document.querySelector('video')
+    );
+  }
+
+  /**
+   * Listener de redundância para o evento 'ended' do elemento <video>.
+   * Se o vídeo chegar ao fim e o loop estiver ativo, força reinício imediato.
+   * @param {Event} event
+   */
+  function handleVideoEnded(event) {
+    if (!isLoopActive) return;
+
+    const video = (event && event.target) || getVideoElement();
+    if (video) {
+      video.currentTime = 0;
+      try {
+        const playPromise = video.play();
+        if (playPromise && typeof playPromise.catch === 'function') {
+          playPromise.catch(() => {});
+        }
+      } catch (e) {
+        // Ignora erros de reprodução automática restrita pelo navegador
+      }
+    }
+  }
+
+  /**
+   * Sincroniza o estado de loop com o elemento <video> ativo.
+   * Aplica video.loop = isLoopActive e registra listener de redundância para 'ended'.
+   * @returns {HTMLVideoElement|null}
+   */
+  function applyLoopToVideo() {
+    const video = getVideoElement();
+    if (!video) return null;
+
+    video.loop = isLoopActive;
+
+    if (!video.__ytLoopEndedAttached) {
+      video.addEventListener('ended', handleVideoEnded);
+      video.__ytLoopEndedAttached = true;
+    }
+
+    return video;
+  }
+
+  /**
    * Atualiza a aparência visual, classes e atributos ARIA do botão de loop
-   * @param {HTMLElement} button
-   * @param {boolean} active
+   * @param {HTMLElement} [button]
+   * @param {boolean} [active]
    */
   function updateButtonVisual(button, active) {
-    if (!button) return;
+    const targetButton =
+      button || (typeof document !== 'undefined' ? document.querySelector('.ytp-loop-button') : null);
+    if (!targetButton) return;
 
-    const isActive = Boolean(active);
+    const isActive = active !== undefined ? Boolean(active) : isLoopActive;
     if (isActive) {
-      button.classList.add('active');
-      button.setAttribute('aria-pressed', 'true');
-      button.setAttribute('title', 'Repetir (Ativado) (Shift+L)');
-      button.setAttribute('data-title-no-tooltip', 'Repetir (Ativado) (Shift+L)');
+      targetButton.classList.add('active');
+      targetButton.setAttribute('aria-pressed', 'true');
+      targetButton.setAttribute('title', 'Repetir (Ativado) (Shift+L)');
+      targetButton.setAttribute('data-title-no-tooltip', 'Repetir (Ativado) (Shift+L)');
     } else {
-      button.classList.remove('active');
-      button.setAttribute('aria-pressed', 'false');
-      button.setAttribute('title', 'Repetir (Shift+L)');
-      button.setAttribute('data-title-no-tooltip', 'Repetir (Shift+L)');
+      targetButton.classList.remove('active');
+      targetButton.setAttribute('aria-pressed', 'false');
+      targetButton.setAttribute('title', 'Repetir (Shift+L)');
+      targetButton.setAttribute('data-title-no-tooltip', 'Repetir (Shift+L)');
     }
+  }
+
+  /**
+   * Exibe notificação flutuante tipo Toast sobre o player do YouTube com feedback de estado.
+   * @param {string} [customMessage]
+   * @returns {HTMLElement|null}
+   */
+  function showToast(customMessage) {
+    if (typeof document === 'undefined') return null;
+
+    const message =
+      typeof customMessage === 'string' && customMessage.trim() !== ''
+        ? customMessage
+        : (isLoopActive ? 'Repetição ativada (Shift+L)' : 'Repetição desativada (Shift+L)');
+
+    const container =
+      document.querySelector('.html5-video-player') ||
+      document.querySelector('#movie_player') ||
+      document.body;
+
+    if (!container) return null;
+
+    let toast =
+      container.querySelector('.ytp-loop-toast') ||
+      document.querySelector('.ytp-loop-toast');
+
+    if (!toast) {
+      toast = document.createElement('div');
+      toast.className = 'ytp-loop-toast';
+      container.appendChild(toast);
+    } else if (toast.parentNode !== container) {
+      container.appendChild(toast);
+    }
+
+    // Limpa temporizadores anteriores de animação pendente
+    if (toastTimeout) {
+      clearTimeout(toastTimeout);
+      toastTimeout = null;
+    }
+    if (toastHideTimeout) {
+      clearTimeout(toastHideTimeout);
+      toastHideTimeout = null;
+    }
+
+    // Configura classes de estado e animação
+    toast.classList.remove('animate-out', 'fade-out');
+    if (isLoopActive) {
+      toast.classList.add('toast-enabled');
+      toast.classList.remove('toast-disabled');
+    } else {
+      toast.classList.add('toast-disabled');
+      toast.classList.remove('toast-enabled');
+    }
+
+    toast.innerHTML = `
+      <span class="ytp-loop-toast-icon">
+        <svg height="100%" version="1.1" viewBox="0 0 36 36" width="100%">
+          <path class="ytp-svg-fill" d="M 7 11 L 10 8 L 10 10 L 23 10 C 25.2 10 27 11.8 27 14 L 27 18 L 24 18 L 24 14 C 24 13.4 23.6 13 23 13 L 10 13 L 10 15 Z M 29 25 L 26 28 L 26 26 L 13 26 C 10.8 26 9 24.2 9 22 L 9 18 L 12 18 L 12 22 C 12 22.6 12.4 23 13 23 L 26 23 L 26 21 Z" />
+        </svg>
+      </span>
+      <span class="ytp-loop-toast-text">${message}</span>
+    `.trim();
+
+    toast.classList.add('show', 'animate-in');
+
+    // Temporizador de 1.5s (1500ms) para animação de saída e remoção do DOM
+    toastTimeout = setTimeout(() => {
+      toast.classList.remove('animate-in');
+      toast.classList.add('animate-out');
+
+      toastHideTimeout = setTimeout(() => {
+        if (toast && toast.parentNode) {
+          toast.parentNode.removeChild(toast);
+        }
+        toastHideTimeout = null;
+      }, 250);
+
+      toastTimeout = null;
+    }, 1500);
+
+    return toast;
+  }
+
+  /**
+   * Alterna o estado de repetição (on/off), persiste no storage,
+   * sincroniza com o elemento de vídeo, atualiza o botão e exibe toast.
+   * @returns {boolean} Novo estado de repetição
+   */
+  function toggleLoopState() {
+    isLoopActive = !isLoopActive;
+
+    // Salvar estado em segundo plano
+    saveLoopState(isLoopActive).catch(() => {});
+
+    // Sincronizar vídeo
+    applyLoopToVideo();
+
+    // Atualizar visual do botão
+    updateButtonVisual();
+
+    // Notificar usuário via Toast
+    showToast();
+
+    return isLoopActive;
   }
 
   /**
@@ -150,6 +316,16 @@
         <path class="ytp-svg-fill" d="M 7 11 L 10 8 L 10 10 L 23 10 C 25.2 10 27 11.8 27 14 L 27 18 L 24 18 L 24 14 C 24 13.4 23.6 13 23 13 L 10 13 L 10 15 Z M 29 25 L 26 28 L 26 26 L 13 26 C 10.8 26 9 24.2 9 22 L 9 18 L 12 18 L 12 22 C 12 22.6 12.4 23 13 23 L 26 23 L 26 21 Z" />
       </svg>
     `.trim();
+
+    // Listener de clique para alternar o estado do loop
+    button.addEventListener('click', (event) => {
+      if (event) {
+        if (typeof event.preventDefault === 'function') event.preventDefault();
+        if (typeof event.stopPropagation === 'function') event.stopPropagation();
+      }
+      toggleLoopState();
+    });
+    button.__ytLoopClickAttached = true;
 
     updateButtonVisual(button, isLoopActive);
     return button;
@@ -175,6 +351,16 @@
     }
 
     if (existingButton) {
+      if (!existingButton.__ytLoopClickAttached) {
+        existingButton.addEventListener('click', (event) => {
+          if (event) {
+            if (typeof event.preventDefault === 'function') event.preventDefault();
+            if (typeof event.stopPropagation === 'function') event.stopPropagation();
+          }
+          toggleLoopState();
+        });
+        existingButton.__ytLoopClickAttached = true;
+      }
       updateButtonVisual(existingButton, isLoopActive);
       return existingButton;
     }
@@ -197,12 +383,142 @@
   }
 
   /**
-   * Inicializa a extensão: carrega estado do storage e injeta botão
+   * Verifica se o elemento alvo do evento de teclado é um campo editável de texto
+   * @param {EventTarget|HTMLElement|null} target
+   * @returns {boolean}
+   */
+  function isTextInputElement(target) {
+    if (!target) return false;
+
+    const tagName = target.tagName ? target.tagName.toUpperCase() : '';
+    if (tagName === 'INPUT' || tagName === 'TEXTAREA' || tagName === 'SELECT') {
+      return true;
+    }
+
+    if (target.isContentEditable) {
+      return true;
+    }
+
+    if (typeof target.closest === 'function') {
+      if (
+        target.closest('[contenteditable="true"]') ||
+        target.closest('[contenteditable=""]') ||
+        target.closest('input, textarea, select')
+      ) {
+        return true;
+      }
+    }
+
+    return false;
+  }
+
+  /**
+   * Manipulador global para atalho de teclado Shift+L.
+   * Ignora digitação em inputs/textareas/contenteditable.
+   * @param {KeyboardEvent} event
+   */
+  function handleKeyDown(event) {
+    if (!event) return;
+
+    if (isTextInputElement(event.target)) {
+      return;
+    }
+
+    // Evita conflitos com outros modificadores de sistema (Ctrl, Alt, Meta/Command)
+    if (event.ctrlKey || event.altKey || event.metaKey) {
+      return;
+    }
+
+    if (event.shiftKey && (event.key === 'L' || event.key === 'l' || event.code === 'KeyL')) {
+      if (typeof event.preventDefault === 'function') {
+        event.preventDefault();
+      }
+      if (typeof event.stopPropagation === 'function') {
+        event.stopPropagation();
+      }
+      if (typeof event.stopImmediatePropagation === 'function') {
+        event.stopImmediatePropagation();
+      }
+
+      toggleLoopState();
+    }
+  }
+
+  /**
+   * Lida com transições SPA do YouTube (evento 'yt-navigate-finish')
+   */
+  function handleNavigation() {
+    injectLoopButton();
+    applyLoopToVideo();
+  }
+
+  /**
+   * Configura MutationObserver para reinjetar botão e re-sincronizar vídeo
+   * caso a interface do player do YouTube seja redesenhada pelo framework SPA.
+   * @returns {MutationObserver|null}
+   */
+  function setupObserver() {
+    if (typeof MutationObserver === 'undefined' || typeof document === 'undefined') {
+      return null;
+    }
+
+    if (observerInstance) {
+      observerInstance.disconnect();
+      observerInstance = null;
+    }
+
+    const targetNode =
+      document.querySelector('#movie_player') ||
+      document.querySelector('.html5-video-player') ||
+      document.querySelector('#player') ||
+      document.body;
+
+    if (!targetNode) return null;
+
+    observerInstance = new MutationObserver(() => {
+      if (observerDebounceTimeout) {
+        clearTimeout(observerDebounceTimeout);
+      }
+      observerDebounceTimeout = setTimeout(() => {
+        const leftControls = document.querySelector('.ytp-left-controls');
+        const loopButton = leftControls ? leftControls.querySelector('.ytp-loop-button') : null;
+        if (leftControls && !loopButton) {
+          injectLoopButton();
+        }
+
+        const video = getVideoElement();
+        if (video && (video.loop !== isLoopActive || !video.__ytLoopEndedAttached)) {
+          applyLoopToVideo();
+        }
+      }, 100);
+    });
+
+    observerInstance.observe(targetNode, {
+      childList: true,
+      subtree: true
+    });
+
+    return observerInstance;
+  }
+
+  /**
+   * Inicializa a extensão: carrega estado do storage, injeta botão,
+   * sincroniza vídeo e anexa listeners globais e observer.
    * @returns {Promise<HTMLButtonElement|null>}
    */
   async function initLoopExtension() {
     await loadLoopState();
-    return injectLoopButton();
+    const button = injectLoopButton();
+    applyLoopToVideo();
+
+    if (typeof window !== 'undefined' && !isGlobalListenersAttached) {
+      window.addEventListener('keydown', handleKeyDown, true);
+      window.addEventListener('yt-navigate-finish', handleNavigation);
+      setupObserver();
+      isGlobalListenersAttached = true;
+    }
+
+    return button;
   }
 
   // Execução automática ao carregar no contexto do navegador
@@ -216,7 +532,7 @@
     }
   }
 
-  // Objeto de exportação modular para testes ou extensão na Task 4
+  // Objeto de exportação modular para testes ou automação
   const YouTubeLooperCore = {
     get isLoopActive() {
       return isLoopActive;
@@ -228,10 +544,39 @@
     setLoopState,
     loadLoopState,
     saveLoopState,
+    getVideoElement,
+    handleVideoEnded,
+    applyLoopToVideo,
     updateButtonVisual,
+    showToast,
+    toggleLoopState,
     createLoopButton,
     injectLoopButton,
-    initLoopExtension
+    isTextInputElement,
+    handleKeyDown,
+    handleNavigation,
+    setupObserver,
+    initLoopExtension,
+    _resetState: () => {
+      isLoopActive = false;
+      isGlobalListenersAttached = false;
+      if (observerInstance) {
+        observerInstance.disconnect();
+        observerInstance = null;
+      }
+      if (observerDebounceTimeout) {
+        clearTimeout(observerDebounceTimeout);
+        observerDebounceTimeout = null;
+      }
+      if (toastTimeout) {
+        clearTimeout(toastTimeout);
+        toastTimeout = null;
+      }
+      if (toastHideTimeout) {
+        clearTimeout(toastHideTimeout);
+        toastHideTimeout = null;
+      }
+    }
   };
 
   if (typeof module !== 'undefined' && module.exports) {
