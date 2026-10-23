@@ -1,26 +1,77 @@
-# Task 2 Brief: Estilos da Extensão (content.css)
+### Task 2: Folha de Estilos e Template do Mini Player (`miniplayer.css` + Scaffolding)
 
-## Requirements
-- Diretório de trabalho: `C:\Users\03573608183\youtube-loop-extension\`
-- Criar o arquivo `content.css` para estilização dos componentes injetados no YouTube:
-  1. **Botão no Player (`.ytp-button.ytp-loop-button`):**
-     - Integrado aos botões nativos do player do YouTube (`.ytp-button`).
-     - Alinhamento vertical centralizado, display flex/inline-flex.
-     - Ícone SVG dimensionado proporcionalmente (ex: 20x20 ou viewBox 36x36 como os demais botões do player).
-     - Estado padrão (inativo): SVG com preenchimento branco (`#ffffff`), opacidade `0.85` e transição suave de cor/opacidade (`transition: all 0.2s ease`).
-     - Estado hover: opacidade `1.0`.
-     - Estado ativo (`.ytp-loop-button.active`):
-       - SVG com preenchimento destacado (vermelho YouTube `#ff0000` ou `#f03` ou azul destaque `#3ea6ff`).
-       - Opacidade `1.0`.
-       - Opcional: pequeno ponto/badge indicador no canto inferior ou brilho sutil.
-  2. **Notificação Toast Flutuante (`.ytp-loop-toast`):**
-     - Exibida centralizada no terço superior do player (`.html5-video-player`).
-     - Fundo translúcido escuro (`rgba(20, 20, 20, 0.88)`), cantos arredondados (`border-radius: 8px`), borda sutil (`1px solid rgba(255, 255, 255, 0.15)`), sombra suave.
-     - Tipografia: fonte padrão do YouTube (`Roboto, "YouTube Noto", sans-serif`), tamanho 14px-15px, cor `#ffffff`, peso 500, padding de 10px 18px.
-     - `pointer-events: none` para nunca atrapalhar cliques no player.
-     - `z-index: 9999`.
-     - Animação CSS suave de fade-in (`opacity: 0 -> 1`, `transform: translateY(-8px) -> translateY(0)`) e fade-out (`opacity: 1 -> 0`).
-  3. **Compatibilidade com Modo Teatro e Tela Cheia:**
-     - Garantir que estilos não sejam sobrescritos em modo fullscreen ou miniplayer.
-- Fazer commit no git: `git add content.css` e `git commit -m "feat: add styling for player loop button and toast notifications"`
-- Validar a sintaxe CSS (sem seletores inválidos).
+**Files:**
+- Create: `C:\Users\03573608183\youtube-loop-extension\miniplayer.css`
+- Modify: `C:\Users\03573608183\youtube-loop-extension\content.js`
+- Test: `C:\Users\03573608183\youtube-loop-extension\test-miniplayer-dom.js`
+
+**Interfaces:**
+- Produces: `renderMiniPlayerHTML(params)`:
+  - Parâmetros: `{ isPill, title, channel, thumbnail, isLoopActive, isPlaying, currentTimeStr, durationStr, progressPercent }`
+  - Retorna a string HTML completa estruturada para a janela Document PiP.
+  - Exportado em `YouTubeLooperCore.renderMiniPlayerHTML`.
+
+- [ ] **Step 1: Escrever teste de unidade para geração do DOM do Mini Player**
+
+Criar arquivo `C:\Users\03573608183\youtube-loop-extension\test-miniplayer-dom.js`:
+Validar:
+1. Em modo Pílula (`isPill = true`):
+   - Contém container `.miniplayer-container.pill`
+   - Contém botões de navegação: `.btn-prev`, `.btn-play`, `.btn-next`, `.btn-loop`
+   - Contém botão de alternância de modo com ícone/ação expandir: `.btn-toggle-mode[data-mode="pill"]` ou `.btn-expand`
+   - Contém botão fechar: `.btn-close`
+   - Contém título da faixa: `.track-title`
+   - Quando `isPlaying = true`, o botão de play exibe o estado correspondente (ou classe `.playing`)
+   - Quando `isLoopActive = true`, o botão de loop possui a classe `.active`
+2. Em modo Expandido (`isPill = false`):
+   - Contém container `.miniplayer-container.expanded`
+   - Contém capa do vídeo / miniatura: `.track-thumbnail`
+   - Contém título: `.track-title`
+   - Contém canal: `.track-channel`
+   - Contém barra de progresso interativa: `input.progress-bar[type="range"]` com `min="0"`, `max="100"` e `value` correspondente
+   - Contém exibição de tempo decorrido e total: `.time-current` e `.time-total`
+   - Contém botão de alternância com ação recolher: `.btn-toggle-mode[data-mode="expanded"]` ou `.btn-collapse`
+   - Contém controles de reprodução completos (`.btn-prev`, `.btn-play`, `.btn-next`, `.btn-loop`)
+3. Verificar integridade da folha de estilos `miniplayer.css`:
+   - Arquivo existe fisicamente
+   - Contém seletores para `.miniplayer-container`, `.pill`, `.expanded`, `.track-title`, `.btn-play`, `.progress-bar`, etc.
+
+- [ ] **Step 2: Executar teste e verificar falha (TDD RED)**
+
+Run: `node C:\Users\03573608183\youtube-loop-extension\test-miniplayer-dom.js`
+Expected: FAIL com erro de arquivo inexistente ou função não definida.
+
+- [ ] **Step 3: Criar `miniplayer.css`**
+
+Criar `C:\Users\03573608183\youtube-loop-extension\miniplayer.css` com:
+- Reset global limpo (`* { box-sizing: border-box; margin: 0; padding: 0; }`).
+- Background estilo YouTube Dark (`#0f0f0f`), texto `#ffffff`, destaque vermelho `#ff0000`.
+- `.miniplayer-container.pill`:
+  - Altura: 54px, display flex, alinhamento centralizado, preenchimento lateral suave, sem scrollbar (`overflow: hidden; user-select: none;`).
+  - Botões compactos de 28x28px, bordas arredondadas, hover com fundo `rgba(255, 255, 255, 0.1)`.
+  - Título com truncamento / ellipsis ou marquee rolante elegante.
+- `.miniplayer-container.expanded`:
+  - Altura: 180px, layout vertical em seções (header com thumbnail 48x48px + títulos + botões de janela, seção de progresso com slider e tempos, seção inferior de controles de mídia centralizados).
+  - Barra de progresso: estilização moderna de `input[type="range"]` com trilha cinza/vermelha e thumb estilizado.
+- Botão de loop com estado `.active`: ícone em `#ff0000` e ponto indicador brilhante.
+
+- [ ] **Step 4: Implementar `renderMiniPlayerHTML` em `content.js`**
+
+Implementar a função utilitária com escape seguro de caracteres para títulos (`escapeHtml`) e exportá-la no `YouTubeLooperCore`.
+
+- [ ] **Step 5: Executar teste unitário (TDD GREEN)**
+
+Run: `node C:\Users\03573608183\youtube-loop-extension\test-miniplayer-dom.js`
+Expected: PASS
+
+- [ ] **Step 6: Executar testes de regressão**
+
+Run: `node C:\Users\03573608183\youtube-loop-extension\test-extension.js`
+Expected: 31/31 PASS
+
+- [ ] **Step 7: Commit das alterações**
+
+```bash
+git add miniplayer.css content.js test-miniplayer-dom.js
+git commit -m "feat(miniplayer): add styling and DOM scaffolding for pill and expanded modes"
+```

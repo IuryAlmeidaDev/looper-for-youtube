@@ -1,65 +1,38 @@
-# Task 2 Report: Estilos da Extensão (content.css)
+# Relatório de Execução - Task 2: Folha de Estilos e Template do Mini Player (miniplayer.css + Scaffolding)
 
-## Status: DONE
-- **Commit Hash:** `89f84c6` (full: `89f84c688350438cf56d814be9e4dfc2e554d3ae`)
-- **Commit Message:** `feat: add styling for player loop button and toast notifications`
+## 1. Visão Geral
+Implementação da folha de estilos dedicada `miniplayer.css` e da função geradora de marcação HTML `renderMiniPlayerHTML` para a janela Document Picture-in-Picture do "Looper for YouTube". O scaffolding atende estritamente à especificação para os modos Pílula (~54px) e Expandido (~180px), integrando identidade visual YouTube Dark (`#0f0f0f`), botões translúcidos com hover suave, destaque ativo em vermelho `#ff0000`, e proteção contra injeções de script (XSS).
 
----
+## 2. Arquivos Modificados / Criados
+- **Criado:** `miniplayer.css` (Folha de estilos completa para a janela PiP, reset global, layouts `.miniplayer-container.pill` e `.miniplayer-container.expanded`, estilização moderna para `input[type="range"]`, botões circulares, feedback visual e badge de loop ativo).
+- **Criado:** `test-miniplayer-dom.js` (Bateria de testes de unidade para validação de geração do DOM no modo Pílula, modo Expandido, integridade e balanceamento da folha de estilos `miniplayer.css`, e sanitização de dados com `escapeHtml`).
+- **Modificado:** `content.js` (Adição das funções `escapeHtml` e `renderMiniPlayerHTML`, estruturação dos templates com SVGs embutidos para total autonomia sem recursos externos de terceiros, e exportação modular em `YouTubeLooperCore`).
 
-## 1. Implementações Realizadas
+## 3. Interfaces Produzidas
+- `YouTubeLooperCore.renderMiniPlayerHTML(params)`:
+  - Parâmetros: `{ isPill, title, channel, thumbnail, isLoopActive, isPlaying, currentTimeStr, durationStr, progressPercent }`.
+  - Retorna string HTML completa e estruturada pronta para injeção ou montagem dentro do `documentPictureInPicture` window document.
+- `YouTubeLooperCore.escapeHtml(str)`:
+  - Sanitizador de strings para atributos e conteúdo textual.
 
-### Estilização do Botão do Player (`.ytp-button.ytp-loop-button`)
-- **Integração Nativa:** Projetado para integrar de forma idêntica aos botões de controle nativos do YouTube (`.ytp-button`).
-- **Alinhamento e Dimensionamento:**
-  - `display: inline-flex`, centralização vertical e horizontal (`align-items: center; justify-content: center; vertical-align: top;`).
-  - Ícone SVG dimensionado proporcionalmente (`max-width: 36px; max-height: 36px; width: 100%; height: 100%`) com `pointer-events: none`.
-- **Estado Padrão (Inativo):**
-  - Preenchimento em branco (`#ffffff`), `fill-opacity: 0.85`.
-  - Transição suave de opacidade e cor (`transition: fill 0.2s ease, fill-opacity 0.2s ease, filter 0.2s ease`).
-- **Estado Hover:**
-  - Opacidade total (`1.0`) e efeito sutil de escala no SVG (`transform: scale(1.08)`).
-- **Estado Ativo (`.ytp-loop-button.active`):**
-  - Preenchimento destacado no vermelho oficial do YouTube (`#ff0000`) e hover em `#ff3333`.
-  - Efeito de brilho/glow através de `filter: drop-shadow(0 0 3px rgba(255, 0, 0, 0.65))`.
-  - Ponto/badge indicador circular vermelho (`::after`) de 4px posicionado centralizado no rodapé do botão, com sombra luminosa (`box-shadow: 0 0 4px #ff0000`).
+## 4. Resultados dos Testes
+- **Ciclo TDD RED:**
+  - `node test-miniplayer-dom.js`: 16 falhas registradas antes da implementação (ausência de `miniplayer.css` e função não definida).
+- **Ciclo TDD GREEN (`test-miniplayer-dom.js`):**
+  - [SUÍTE 1] Exportação de `renderMiniPlayerHTML`: 1/1 PASS
+  - [SUÍTE 2] Validação do DOM no Modo Pílula (`isPill = true`): 6/6 PASS
+  - [SUÍTE 3] Validação do DOM no Modo Expandido (`isPill = false`): 8/8 PASS
+  - [SUÍTE 4] Integridade da Folha de Estilos (`miniplayer.css`): 4/4 PASS
+  - **Total de Testes Unitários:** 19/19 PASS (100% SUCESSO)
+- **Teste Unitário Ad Destroyer (`test-ad-destroyer.js`):**
+  - **PASS** (100% SUCESSO)
+- **Bateria de Regressão Integrada (`test-extension.js`):**
+  - Suíte 1 (Manifest V3): 8/8 PASS
+  - Suíte 2 (Ícones PNG): 3/3 PASS
+  - Suíte 3 (CSS Styles): 6/6 PASS
+  - Suíte 4 (JS Core estático): 4/4 PASS
+  - Suíte 5 (Runtime & Integração DOM/Storage): 10/10 PASS
+  - **Total:** 31/31 PASS (100% SUCESSO)
 
-### Notificação Toast Flutuante (`.ytp-loop-toast`)
-- **Posicionamento e Camadas:**
-  - Posicionamento absoluto no terço superior do player (`top: 14%; left: 50%; transform: translate(-50%, -8px)`).
-  - Elevado `z-index: 9999` para sobrepor outros elementos do player.
-  - `pointer-events: none` e `user-select: none` para assegurar que nunca intercepte cliques ou seleções do usuário no vídeo.
-- **Design Visual:**
-  - Fundo translúcido escuro (`rgba(20, 20, 20, 0.88)`), cantos arredondados (`border-radius: 8px`), borda translúcida sutil (`1px solid rgba(255, 255, 255, 0.15)`).
-  - Efeito de vidro com `backdrop-filter: blur(8px)`.
-  - Sombra suave profunda (`box-shadow: 0 4px 16px rgba(0, 0, 0, 0.4)`).
-  - Tipografia consistente com YouTube (`Roboto, "YouTube Noto", sans-serif`), tamanho 14px, peso 500, padding de 10px 18px.
-- **Animações e Estados:**
-  - Transições suaves para classes `.show`, `.visible` e `.fade-out`.
-  - Animações CSS prontas `@keyframes ytpLoopToastFadeIn` e `@keyframes ytpLoopToastFadeOut` via classes `.animate-in` e `.animate-out`.
-  - Suporte a classes temáticas `.toast-enabled` (ícone vermelho) e `.toast-disabled` (ícone neutro).
-
-### Compatibilidade com Modos do Player
-- **Modo Tela Cheia (`.html5-video-player.ytp-fullscreen`):**
-  - Ajuste de escala para toast (`font-size: 15px; padding: 12px 20px; top: 10%`).
-  - Ajuste do indicador ativo (`bottom: 8px; width: 5px; height: 5px`).
-- **Modo Miniplayer / Telas Pequenas (`.html5-video-player.ytp-small-mode`):**
-  - Ajuste compacto para toast (`font-size: 12px; padding: 6px 12px; top: 8%`).
-  - Ajuste do indicador ativo (`bottom: 4px; width: 3px; height: 3px`).
-
----
-
-## 2. Validações Realizadas
-
-1. **Validação de Sintaxe CSS e Fechamento de Blocos:**
-   - Script Node.js executado para validação de balanceamento de chaves e aninhamento de seletores.
-   - 0 erros de sintaxe ou fechamento encontrados.
-2. **Conformidade com os Seletores do YouTube:**
-   - Seletores utilizam o padrão BEM/prefixo `ytp-` nativo do YouTube (`.ytp-button`, `.ytp-svg-fill`, `.html5-video-player`, `.ytp-fullscreen`, etc.).
-   - Escopo estrito para evitar poluição da página pai (`www.youtube.com`).
-3. **Controle de Versão:**
-   - Arquivo `content.css` adicionado e commit realizado no repositório Git local.
-
----
-
-## 3. Próximos Passos
-- Avançar para a **Task 3**: Implementação do Core do Content Script (`content.js`), incluindo ciclo de vida, detecção do player, leitura/escrita de storage e injeção do botão no DOM.
+## 5. Commit Criado
+- `708074a feat(miniplayer): add styling and DOM scaffolding for pill and expanded modes`

@@ -1,38 +1,26 @@
-# Task 4 Brief: Content Script - Controle de Vídeo, Eventos SPA, Atalho e Toast (content.js - Completo)
+### Task 4: Sincronização Bidirecional de Mídia & Controles de Música
 
-## Requirements
-- Diretório de trabalho: `C:\Users\03573608183\youtube-loop-extension\`
-- Expandir e finalizar `content.js` integrando todos os fluxos de controle do player e interatividade:
-  1. **Alternância de Estado e Feedback (`toggleLoopState`):**
-     - Função `toggleLoopState()`:
-       - Inverte o estado atual (`isLoopActive = !isLoopActive`).
-       - Chama `saveLoopState(isLoopActive)`.
-       - Chama `applyLoopToVideo()`.
-       - Atualiza o botão no player via `updateButtonVisual`.
-       - Exibe a notificação toast via `showToast()`.
-  2. **Sincronização com o Elemento `<video>`:**
-     - Função `applyLoopToVideo()`:
-       - Localiza o `<video>` ativo no YouTube (`document.querySelector('video')` ou `document.querySelector('.html5-main-video')`).
-       - Se existir, define `video.loop = isLoopActive`.
-       - Registra listener de redundância para o evento `ended`:
-         - Se o vídeo terminar e `isLoopActive === true`, força reinício: `video.currentTime = 0; video.play()`.
-  3. **Notificação Toast Flutuante (`showToast`):**
-     - Função `showToast(message)`:
-       - Texto padrão: se `isLoopActive`, "Repetição ativada (Shift+L)", senão "Repetição desativada (Shift+L)".
-       - Cria ou reaproveita o elemento `.ytp-loop-toast`.
-       - Anexa o toast dentro do container do player (`.html5-video-player` ou fallback para `document.body`).
-       - Aplica classe `.animate-in` / `.show`.
-       - Temporizador de 1.5s (1500ms) para animação de saída `.animate-out` e posterior remoção do DOM.
-  4. **Atalho de Teclado Seguro (`Shift + L`):**
-     - Listener em `window.addEventListener('keydown', handleKeyDown, true)`:
-     - Prevenção contra digitação: se `event.target` for `INPUT`, `TEXTAREA` ou tiver `isContentEditable` (`event.target.closest('[contenteditable="true"]')`), ignora completamente.
-     - Se `event.shiftKey && (event.key === 'L' || event.key === 'l')`:
-       - Executa `event.preventDefault()` e `event.stopPropagation()`.
-       - Aciona `toggleLoopState()`.
-  5. **Integração com o Botão e Eventos SPA do YouTube:**
-     - Ao criar/injetar o botão, adiciona listener de `click` que chama `toggleLoopState()`.
-     - Escuta eventos SPA do YouTube: `window.addEventListener('yt-navigate-finish', handleNavigation)`.
-     - `MutationObserver` monitorando alterações no player para reinjetar o botão se os controles forem reconstruídos.
-     - Inicialização automática no carregamento da página: carrega o estado persistido, injeta o botão e sincroniza o vídeo.
-- Fazer commit no git: `git add content.js` e `git commit -m "feat: complete video loop controls, keyboard shortcut, toast feedback and SPA lifecycle"`
-- Validar a sintaxe com `node -c content.js` e executar testes unitários automatizados.
+**Files:**
+- Modify: `C:\Users\03573608183\youtube-loop-extension\content.js`
+- Test: `C:\Users\03573608183\youtube-loop-extension\test-playback-sync.js`
+
+**Interfaces:**
+- Consumes: `<video>`, `.ytp-next-button`, `.ytp-prev-button`, `YouTubeLooperCore.toggleLoopState`, `YouTubeLooperCore.getLoopState`
+- Produces: `MiniPlayerController`:
+  - `bindWindowEvents(doc)`: associa eventos de clique e arrasto aos elementos da janela PiP.
+  - `syncPlaybackState(doc)`: sincroniza Play/Pause e Loop no PiP de acordo com o vídeo da página.
+  - `syncTimeAndProgress(doc)`: sincroniza tempos (`01:23 / 04:00`) e slider de progresso em tempo real (`timeupdate`).
+  - `updateMetadata()`: atualiza título, canal e thumbnail na janela PiP aberta quando a música mudar (ex: navegação SPA).
+  - Exportado em `YouTubeLooperCore.MiniPlayerController`.
+
+- [x] **Step 1: Escrever teste de unidade para sincronização de controles (TDD RED)**
+- [x] **Step 2: Executar teste e validar falha (TDD RED)**
+- [x] **Step 3: Implementar sincronização bidirecional em `content.js`**
+- [x] **Step 4: Executar teste para validar passagem (TDD GREEN)**
+- [x] **Step 5: Executar todas as suítes de regressão**
+- [x] **Step 6: Commit das alterações**
+
+```bash
+git add content.js test-playback-sync.js
+git commit -m "feat(miniplayer): connect bidirectional media controls, track navigation and seek"
+```
