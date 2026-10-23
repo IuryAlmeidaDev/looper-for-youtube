@@ -506,6 +506,124 @@
     updateButtonVisual(button, isLoopActive);
     return button;
   }
+  /**
+   * Cria o elemento do botão nativo de acionamento do Mini Player Flutuante (.ytp-pip-button)
+   * @returns {HTMLButtonElement|null}
+   */
+  function createPipButton() {
+    if (typeof document === 'undefined') return null;
+
+    const button = document.createElement('button');
+    button.className = 'ytp-button ytp-pip-button';
+    button.setAttribute('aria-label', 'Mini Player Flutuante (Shift+P)');
+    button.setAttribute('title', 'Mini Player Flutuante (Shift+P)');
+    button.setAttribute('data-title-no-tooltip', 'Mini Player Flutuante (Shift+P)');
+
+    button.innerHTML = `
+      <svg height="100%" version="1.1" viewBox="0 0 36 36" width="100%">
+        <path class="ytp-svg-fill" d="M 25 11 L 11 11 C 9.9 11 9 11.9 9 13 L 9 23 C 9 24.1 9.9 25 11 25 L 25 25 C 26.1 25 27 24.1 27 23 L 27 13 C 27 11.9 26.1 11 25 11 Z M 25 23 L 11 23 L 11 13 L 25 13 L 25 23 Z M 24 17 L 17 17 C 16.4 17 16 17.4 16 18 L 16 22 C 16 22.6 16.4 23 17 23 L 24 23 C 24.6 23 25 22.6 25 22 L 25 18 C 25 17.4 24.6 17 24 17 Z" />
+      </svg>
+    `.trim();
+
+    button.addEventListener('click', (event) => {
+      if (event) {
+        if (typeof event.preventDefault === 'function') event.preventDefault();
+        if (typeof event.stopPropagation === 'function') event.stopPropagation();
+      }
+      if (typeof MiniPlayerController !== 'undefined' && MiniPlayerController && typeof MiniPlayerController.open === 'function') {
+        MiniPlayerController.open();
+      }
+    });
+    button.__ytPipClickAttached = true;
+
+    return button;
+  }
+
+  /**
+   * Injeta o botão do Mini Player na barra de controles à esquerda (.ytp-left-controls)
+   * Imediatamente após o .ytp-loop-button (ou .ytp-play-button).
+   * Idempotente: evita duplicações no DOM.
+   * @param {HTMLElement} [targetContainer]
+   * @returns {HTMLButtonElement|null}
+   */
+  function injectPipButton(targetContainer) {
+    if (typeof document === 'undefined') return null;
+
+    const leftControls = targetContainer || document.querySelector('.ytp-left-controls');
+    if (!leftControls) {
+      return null;
+    }
+
+    // Verifica se já existe um botão de PiP na barra ou no DOM
+    let existingButton = null;
+    if (typeof leftControls.querySelector === 'function') {
+      existingButton = leftControls.querySelector('.ytp-pip-button');
+    }
+    if (!existingButton && leftControls.children && Array.isArray(leftControls.children)) {
+      existingButton = leftControls.children.find(child => child && child.classList && (
+        (typeof child.classList.contains === 'function' && child.classList.contains('ytp-pip-button')) ||
+        (typeof child.classList.has === 'function' && child.classList.has('ytp-pip-button'))
+      ));
+    }
+    if (!existingButton && !targetContainer && typeof document.querySelector === 'function') {
+      existingButton = document.querySelector('.ytp-pip-button');
+    }
+
+    if (existingButton) {
+      if (!existingButton.__ytPipClickAttached) {
+        existingButton.addEventListener('click', (event) => {
+          if (event) {
+            if (typeof event.preventDefault === 'function') event.preventDefault();
+            if (typeof event.stopPropagation === 'function') event.stopPropagation();
+          }
+          if (typeof MiniPlayerController !== 'undefined' && MiniPlayerController && typeof MiniPlayerController.open === 'function') {
+            MiniPlayerController.open();
+          }
+        });
+        existingButton.__ytPipClickAttached = true;
+      }
+      return existingButton;
+    }
+
+    const button = createPipButton();
+    if (!button) return null;
+
+    let loopButton = typeof leftControls.querySelector === 'function' ? leftControls.querySelector('.ytp-loop-button') : null;
+    if (!loopButton && leftControls.children && Array.isArray(leftControls.children)) {
+      loopButton = leftControls.children.find(c => c && c.classList && (
+        (typeof c.classList.contains === 'function' && c.classList.contains('ytp-loop-button')) ||
+        (typeof c.classList.has === 'function' && c.classList.has('ytp-loop-button'))
+      ));
+    }
+
+    let nextButton = typeof leftControls.querySelector === 'function' ? leftControls.querySelector('.ytp-next-button') : null;
+    if (!nextButton && leftControls.children && Array.isArray(leftControls.children)) {
+      nextButton = leftControls.children.find(c => c && c.classList && (
+        (typeof c.classList.contains === 'function' && c.classList.contains('ytp-next-button')) ||
+        (typeof c.classList.has === 'function' && c.classList.has('ytp-next-button'))
+      ));
+    }
+
+    let playButton = typeof leftControls.querySelector === 'function' ? leftControls.querySelector('.ytp-play-button') : null;
+    if (!playButton && leftControls.children && Array.isArray(leftControls.children)) {
+      playButton = leftControls.children.find(c => c && c.classList && (
+        (typeof c.classList.contains === 'function' && c.classList.contains('ytp-play-button')) ||
+        (typeof c.classList.has === 'function' && c.classList.has('ytp-play-button'))
+      ));
+    }
+
+    if (loopButton && typeof loopButton.insertAdjacentElement === 'function') {
+      loopButton.insertAdjacentElement('afterend', button);
+    } else if (nextButton && typeof nextButton.insertAdjacentElement === 'function') {
+      nextButton.insertAdjacentElement('afterend', button);
+    } else if (playButton && typeof playButton.insertAdjacentElement === 'function') {
+      playButton.insertAdjacentElement('afterend', button);
+    } else if (typeof leftControls.appendChild === 'function') {
+      leftControls.appendChild(button);
+    }
+
+    return button;
+  }
 
   /**
    * Verifica se o elemento alvo do evento de teclado é um campo editável de texto
@@ -555,6 +673,7 @@
       return;
     }
 
+    // Atalho Shift + L: Repetir
     if (event.shiftKey && (event.key === 'L' || event.key === 'l' || event.code === 'KeyL')) {
       if (typeof event.preventDefault === 'function') {
         event.preventDefault();
@@ -567,6 +686,24 @@
       }
 
       toggleLoopState();
+      return;
+    }
+
+    // Atalho Shift + P: Mini Player Flutuante
+    if (event.shiftKey && (event.key === 'P' || event.key === 'p' || event.code === 'KeyP')) {
+      if (typeof event.preventDefault === 'function') {
+        event.preventDefault();
+      }
+      if (typeof event.stopPropagation === 'function') {
+        event.stopPropagation();
+      }
+      if (typeof event.stopImmediatePropagation === 'function') {
+        event.stopImmediatePropagation();
+      }
+
+      if (typeof MiniPlayerController !== 'undefined' && MiniPlayerController && typeof MiniPlayerController.open === 'function') {
+        MiniPlayerController.open();
+      }
     }
   }
 
@@ -575,6 +712,7 @@
    */
   function handleNavigation() {
     injectLoopButton();
+    injectPipButton();
     applyLoopToVideo();
     AdDestroyer.checkAndDestroyAds();
     if (typeof MiniPlayerController !== 'undefined' && MiniPlayerController && MiniPlayerController.pipWindow && !MiniPlayerController.pipWindow.closed) {
@@ -619,6 +757,11 @@
           injectLoopButton();
         }
 
+        const pipButton = leftControls ? leftControls.querySelector('.ytp-pip-button') : null;
+        if (leftControls && !pipButton) {
+          injectPipButton(leftControls);
+        }
+
         const video = getVideoElement();
         if (video && (video.loop !== isLoopActive || !video.__ytLoopEndedAttached)) {
           applyLoopToVideo();
@@ -642,6 +785,7 @@
   async function initLoopExtension() {
     await loadLoopState();
     const button = injectLoopButton();
+    injectPipButton();
     applyLoopToVideo();
     AdDestroyer.init();
 
@@ -1515,6 +1659,8 @@
     toggleLoopState,
     createLoopButton,
     injectLoopButton,
+    createPipButton,
+    injectPipButton,
     isTextInputElement,
     handleKeyDown,
     handleNavigation,
