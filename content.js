@@ -125,9 +125,13 @@
     const player =
       document.querySelector('.html5-video-player') ||
       document.querySelector('#movie_player');
-    return Boolean(
-      player && (player.classList.contains('ad-showing') || player.classList.contains('ad-interrupting'))
+    const isPlayerAd = Boolean(
+      player && player.classList && (
+        (typeof player.classList.contains === 'function' && (player.classList.contains('ad-showing') || player.classList.contains('ad-interrupting'))) ||
+        (typeof player.classList.has === 'function' && (player.classList.has('ad-showing') || player.classList.has('ad-interrupting')))
+      )
     );
+    return isPlayerAd || (typeof AdDestroyer !== 'undefined' && AdDestroyer.isHandlingAd);
   }
 
   /**
@@ -143,6 +147,96 @@
       document.querySelector('video')
     );
   }
+
+  /**
+   * AdDestroyer: Motor de detecção e aniquilação instantânea e silenciosa de anúncios do YouTube.
+   * Silencia o áudio, acelera o vídeo a 16x e avança para o final (duration), acionando o botão 'Pular Anúncio'.
+   */
+  const AdDestroyer = {
+    savedVolume: 1,
+    savedMuted: false,
+    savedPlaybackRate: 1.0,
+    isHandlingAd: false,
+    checkIntervalId: null,
+
+    init(container, vid) {
+      if (this.checkIntervalId) return;
+      this.checkIntervalId = setInterval(() => {
+        this.checkAndDestroyAds(container, vid);
+      }, 250);
+      if (this.checkIntervalId && typeof this.checkIntervalId.unref === 'function') {
+        this.checkIntervalId.unref();
+      }
+    },
+
+    restoreAudio(vid) {
+      const targetVideo = vid || getVideoElement();
+      if (targetVideo) {
+        targetVideo.muted = this.savedMuted;
+        targetVideo.playbackRate = this.savedPlaybackRate || 1.0;
+        if (this.savedVolume !== undefined) {
+          try {
+            targetVideo.volume = this.savedVolume;
+          } catch (e) {}
+        }
+      }
+      this.isHandlingAd = false;
+    },
+
+    checkAndDestroyAds(container, vid) {
+      const targetContainer =
+        container ||
+        (typeof document !== 'undefined'
+          ? (document.querySelector('.html5-video-player') || document.querySelector('#movie_player'))
+          : null);
+      const targetVideo = vid || getVideoElement();
+
+      if (!targetContainer || !targetVideo) return;
+
+      const isAd = Boolean(
+        targetContainer.classList && (
+          (typeof targetContainer.classList.contains === 'function' &&
+            (targetContainer.classList.contains('ad-showing') || targetContainer.classList.contains('ad-interrupting'))) ||
+          (typeof targetContainer.classList.has === 'function' &&
+            (targetContainer.classList.has('ad-showing') || targetContainer.classList.has('ad-interrupting')))
+        )
+      );
+
+      if (isAd) {
+        if (!this.isHandlingAd) {
+          this.savedMuted = Boolean(targetVideo.muted);
+          this.savedVolume = targetVideo.volume !== undefined ? targetVideo.volume : 1;
+          this.savedPlaybackRate = targetVideo.playbackRate || 1.0;
+          this.isHandlingAd = true;
+        }
+
+        // Silenciar e acelerar ao máximo (16x)
+        targetVideo.muted = true;
+        targetVideo.playbackRate = 16.0;
+
+        // Pular diretamente para o final do vídeo de anúncio se a duração for válida
+        if (isFinite(targetVideo.duration) && targetVideo.duration > 0) {
+          try {
+            targetVideo.currentTime = targetVideo.duration;
+          } catch (e) {}
+        }
+
+        // Clicar no botão pular anúncio se presente
+        if (typeof targetContainer.querySelector === 'function') {
+          const skipBtn = targetContainer.querySelector(
+            '.ytp-ad-skip-button, .ytp-ad-skip-button-modern, .ytp-skip-ad-button, .ytp-ad-skip-button-slot'
+          );
+          if (skipBtn && typeof skipBtn.click === 'function') {
+            try {
+              skipBtn.click();
+            } catch (e) {}
+          }
+        }
+      } else if (this.isHandlingAd) {
+        this.restoreAudio(targetVideo);
+      }
+    }
+  };
 
   /**
    * Listener de redundância para o evento 'ended' do elemento <video>.
@@ -473,6 +567,7 @@
   function handleNavigation() {
     injectLoopButton();
     applyLoopToVideo();
+    AdDestroyer.checkAndDestroyAds();
   }
 
   /**
@@ -499,6 +594,8 @@
     if (!targetNode) return null;
 
     observerInstance = new MutationObserver(() => {
+      AdDestroyer.checkAndDestroyAds();
+
       if (observerDebounceTimeout) {
         clearTimeout(observerDebounceTimeout);
       }
@@ -533,6 +630,7 @@
     await loadLoopState();
     const button = injectLoopButton();
     applyLoopToVideo();
+    AdDestroyer.init();
 
     if (typeof window !== 'undefined' && !isGlobalListenersAttached) {
       window.addEventListener('keydown', handleKeyDown, true);
@@ -581,6 +679,7 @@
     handleNavigation,
     setupObserver,
     initLoopExtension,
+    AdDestroyer,
     _resetState: () => {
       isLoopActive = false;
       isGlobalListenersAttached = false;
@@ -600,6 +699,11 @@
         clearTimeout(toastHideTimeout);
         toastHideTimeout = null;
       }
+      if (AdDestroyer.checkIntervalId) {
+        clearInterval(AdDestroyer.checkIntervalId);
+        AdDestroyer.checkIntervalId = null;
+      }
+      AdDestroyer.isHandlingAd = false;
     }
   };
 

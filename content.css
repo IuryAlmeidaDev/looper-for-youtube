@@ -236,3 +236,19 @@
   width: 3px;
   height: 3px;
 }
+
+/* --------------------------------------------------------------------------
+   Ad Destroyer: Inibição de banners, popups e elementos promocionais
+   -------------------------------------------------------------------------- */
+.ytp-ad-overlay-container,
+.ytp-ad-message-container,
+#player-ads,
+.ytd-ad-slot-renderer,
+ytd-promoted-sparkles-web-renderer,
+ytd-display-ad-renderer,
+ytd-player-legacy-desktop-watch-ads-renderer {
+  display: none !important;
+  opacity: 0 !important;
+  pointer-events: none !important;
+}
+
