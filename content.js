@@ -642,6 +642,137 @@
     return button;
   }
 
+  /**
+   * Escapa caracteres especiais HTML para prevenir injeção de script (XSS).
+   * @param {string} str
+   * @returns {string}
+   */
+  function escapeHtml(str) {
+    if (str === null || str === undefined) return '';
+    return String(str)
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;')
+      .replace(/'/g, '&#39;');
+  }
+
+  /**
+   * Gera a string HTML completa estruturada para a janela Document Picture-in-Picture.
+   * Suporta os modos Pílula (~54px) e Expandido (~180px).
+   * @param {Object} [params]
+   * @param {boolean} [params.isPill=false]
+   * @param {string} [params.title='']
+   * @param {string} [params.channel='']
+   * @param {string} [params.thumbnail='']
+   * @param {boolean} [params.isLoopActive=false]
+   * @param {boolean} [params.isPlaying=false]
+   * @param {string} [params.currentTimeStr='0:00']
+   * @param {string} [params.durationStr='0:00']
+   * @param {number} [params.progressPercent=0]
+   * @returns {string}
+   */
+  function renderMiniPlayerHTML(params) {
+    const opts = params || {};
+    const isPill = Boolean(opts.isPill);
+    const title = escapeHtml(opts.title || 'YouTube Video');
+    const channel = escapeHtml(opts.channel || 'YouTube');
+    const isLoopActive = Boolean(opts.isLoopActive);
+    const isPlaying = Boolean(opts.isPlaying);
+    const currentTimeStr = escapeHtml(opts.currentTimeStr || '0:00');
+    const durationStr = escapeHtml(opts.durationStr || '0:00');
+    const progressPercent = typeof opts.progressPercent === 'number' ? Math.max(0, Math.min(100, opts.progressPercent)) : 0;
+
+    // Miniatura com fallback seguro
+    const defaultThumbSvg = 'data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" viewBox="0 0 24 24" fill="%23666"><rect width="24" height="24" fill="%23222"/><path d="M12 3v10.55c-.59-.34-1.27-.55-2-.55-2.21 0-4 1.79-4 4s1.79 4 4 4 4-1.79 4-4V7h4V3h-6z" fill="%23aaa"/></svg>';
+    const thumbnail = opts.thumbnail ? escapeHtml(opts.thumbnail) : defaultThumbSvg;
+
+    // Ícones SVG inline para autonomia e compatibilidade estrita Manifest V3 CSP
+    const svgPrev = '<svg viewBox="0 0 24 24"><path d="M6 6h2v12H6zm3.5 6l8.5 6V6z" fill="currentColor"/></svg>';
+    const svgPlay = '<svg viewBox="0 0 24 24"><path d="M8 5v14l11-7z" fill="currentColor"/></svg>';
+    const svgPause = '<svg viewBox="0 0 24 24"><path d="M6 19h4V5H6v14zm8-14v14h4V5h-4z" fill="currentColor"/></svg>';
+    const svgNext = '<svg viewBox="0 0 24 24"><path d="M6 18l8.5-6L6 6v12zM16 6v12h2V6h-2z" fill="currentColor"/></svg>';
+    const svgLoop = '<svg viewBox="0 0 24 24"><path d="M7 7h10v3l4-4-4-4v3H5v6h2V7zm10 10H7v-3l-4 4 4 4v-3h12v-6h-2v4z" fill="currentColor"/></svg>';
+    const svgExpand = '<svg viewBox="0 0 24 24"><path d="M15 3h6v6M9 21H3v-6M21 3l-7 7M3 21l7-7" stroke="currentColor" stroke-width="2" stroke-linecap="round" fill="none"/></svg>';
+    const svgCollapse = '<svg viewBox="0 0 24 24"><path d="M4 14h6v6M20 10h-6V4M14 10l7-7M10 14l-7 7" stroke="currentColor" stroke-width="2" stroke-linecap="round" fill="none"/></svg>';
+    const svgClose = '<svg viewBox="0 0 24 24"><path d="M18 6L6 18M6 6l12 12" stroke="currentColor" stroke-width="2" stroke-linecap="round" fill="none"/></svg>';
+
+    const playIcon = isPlaying ? svgPause : svgPlay;
+    const playTitle = isPlaying ? 'Pausar' : 'Reproduzir';
+    const playClass = isPlaying ? 'btn-control btn-play playing' : 'btn-control btn-play';
+    const loopClass = isLoopActive ? 'btn-control btn-loop active' : 'btn-control btn-loop';
+    const loopTitle = isLoopActive ? 'Repetir (Ativado)' : 'Repetir';
+
+    if (isPill) {
+      return `
+<div class="miniplayer-container pill" id="miniplayer-container">
+  <div class="pill-info">
+    <span class="track-title" title="${title}">${title}</span>
+  </div>
+  <div class="pill-controls">
+    <button class="btn-control btn-prev" title="Anterior" aria-label="Anterior">
+      ${svgPrev}
+    </button>
+    <button class="${playClass}" title="${playTitle}" aria-label="${playTitle}">
+      ${playIcon}
+    </button>
+    <button class="btn-control btn-next" title="Próximo" aria-label="Próximo">
+      ${svgNext}
+    </button>
+    <button class="${loopClass}" title="${loopTitle}" aria-label="${loopTitle}">
+      ${svgLoop}
+    </button>
+    <button class="btn-control btn-toggle-mode btn-expand" data-mode="pill" title="Expandir" aria-label="Expandir">
+      ${svgExpand}
+    </button>
+    <button class="btn-control btn-close" title="Fechar" aria-label="Fechar">
+      ${svgClose}
+    </button>
+  </div>
+</div>`.trim();
+    }
+
+    return `
+<div class="miniplayer-container expanded" id="miniplayer-container">
+  <div class="expanded-header">
+    <div class="thumbnail-wrapper">
+      <img class="track-thumbnail" src="${thumbnail}" alt="${title}" />
+    </div>
+    <div class="track-info">
+      <div class="track-title" title="${title}">${title}</div>
+      <div class="track-channel" title="${channel}">${channel}</div>
+    </div>
+    <div class="header-actions">
+      <button class="btn-control btn-toggle-mode btn-collapse" data-mode="expanded" title="Recolher para Pílula" aria-label="Recolher">
+        ${svgCollapse}
+      </button>
+      <button class="btn-control btn-close" title="Fechar" aria-label="Fechar">
+        ${svgClose}
+      </button>
+    </div>
+  </div>
+  <div class="expanded-progress">
+    <span class="time-current">${currentTimeStr}</span>
+    <input type="range" class="progress-bar" min="0" max="100" value="${progressPercent}" step="0.1" aria-label="Progresso de reprodução" />
+    <span class="time-total">${durationStr}</span>
+  </div>
+  <div class="expanded-controls">
+    <button class="btn-control btn-prev" title="Anterior" aria-label="Anterior">
+      ${svgPrev}
+    </button>
+    <button class="${playClass}" title="${playTitle}" aria-label="${playTitle}">
+      ${playIcon}
+    </button>
+    <button class="btn-control btn-next" title="Próximo" aria-label="Próximo">
+      ${svgNext}
+    </button>
+    <button class="${loopClass}" title="${loopTitle}" aria-label="${loopTitle}">
+      ${svgLoop}
+    </button>
+  </div>
+</div>`.trim();
+  }
+
   // Execução automática ao carregar no contexto do navegador
   if (typeof window !== 'undefined' && typeof document !== 'undefined') {
     if (document.readyState === 'loading') {
@@ -680,6 +811,8 @@
     setupObserver,
     initLoopExtension,
     AdDestroyer,
+    escapeHtml,
+    renderMiniPlayerHTML,
     _resetState: () => {
       isLoopActive = false;
       isGlobalListenersAttached = false;

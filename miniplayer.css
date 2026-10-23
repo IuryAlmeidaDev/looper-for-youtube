@@ -1,0 +1,327 @@
+/* ==========================================================================
+   YouTube Mini Player - Window Stylesheet (miniplayer.css)
+   Compatível com Document Picture-in-Picture: Pill (54px) & Expanded (180px)
+   ========================================================================== */
+
+/* Reset global limpo */
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+html,
+body {
+  width: 100%;
+  height: 100%;
+  margin: 0;
+  padding: 0;
+  overflow: hidden;
+  background-color: #0f0f0f;
+  color: #ffffff;
+  font-family: "Roboto", "Segoe UI", -apple-system, BlinkMacSystemFont, Arial, sans-serif;
+  user-select: none;
+  -webkit-user-select: none;
+}
+
+/* Base Container */
+.miniplayer-container {
+  display: flex;
+  width: 100%;
+  height: 100%;
+  background-color: #0f0f0f;
+  overflow: hidden;
+  position: relative;
+}
+
+/* Botões de Controle Base */
+.btn-control {
+  background: transparent;
+  border: none;
+  outline: none;
+  color: #ffffff;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  padding: 0;
+  transition: background-color 0.15s ease, transform 0.15s ease, color 0.15s ease;
+  flex-shrink: 0;
+}
+
+.btn-control svg {
+  display: block;
+  pointer-events: none;
+}
+
+.btn-control:hover {
+  background-color: rgba(255, 255, 255, 0.1);
+}
+
+.btn-control:active {
+  transform: scale(0.92);
+}
+
+/* Botão de repetição (Loop Ativo) */
+.btn-control.btn-loop.active {
+  color: #ff0000;
+  position: relative;
+}
+
+.btn-control.btn-loop.active svg {
+  filter: drop-shadow(0 0 4px rgba(255, 0, 0, 0.75));
+}
+
+.btn-control.btn-loop.active::after {
+  content: '';
+  position: absolute;
+  bottom: 2px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 3px;
+  height: 3px;
+  border-radius: 50%;
+  background-color: #ff0000;
+  box-shadow: 0 0 4px #ff0000;
+}
+
+/* Botão fechar com destaque hover suave */
+.btn-control.btn-close:hover {
+  background-color: rgba(255, 68, 68, 0.2);
+  color: #ff4444;
+}
+
+/* --------------------------------------------------------------------------
+   1. Modo Pílula (.pill) - Altura: 54px
+   -------------------------------------------------------------------------- */
+.miniplayer-container.pill {
+  height: 54px;
+  flex-direction: row;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 10px;
+  gap: 8px;
+  overflow: hidden;
+  user-select: none;
+}
+
+.miniplayer-container.pill .pill-info {
+  display: flex;
+  align-items: center;
+  flex: 1 1 auto;
+  min-width: 0;
+  overflow: hidden;
+}
+
+.miniplayer-container.pill .track-title {
+  font-size: 12px;
+  font-weight: 500;
+  color: #f1f1f1;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  letter-spacing: 0.2px;
+}
+
+.miniplayer-container.pill .pill-controls {
+  display: flex;
+  align-items: center;
+  gap: 3px;
+  flex-shrink: 0;
+}
+
+.miniplayer-container.pill .btn-control {
+  width: 28px;
+  height: 28px;
+}
+
+.miniplayer-container.pill .btn-control svg {
+  width: 16px;
+  height: 16px;
+}
+
+.miniplayer-container.pill .btn-control.btn-play svg {
+  width: 18px;
+  height: 18px;
+}
+
+/* --------------------------------------------------------------------------
+   2. Modo Expandido (.expanded) - Altura: 180px
+   -------------------------------------------------------------------------- */
+.miniplayer-container.expanded {
+  height: 180px;
+  flex-direction: column;
+  justify-content: space-between;
+  padding: 12px 14px;
+  background: linear-gradient(180deg, #181818 0%, #0f0f0f 100%);
+  overflow: hidden;
+  user-select: none;
+}
+
+/* Seção de Cabeçalho: Thumbnail 48x48 + Título/Canal + Ações */
+.miniplayer-container.expanded .expanded-header {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+}
+
+.miniplayer-container.expanded .thumbnail-wrapper {
+  width: 48px;
+  height: 48px;
+  border-radius: 6px;
+  overflow: hidden;
+  flex-shrink: 0;
+  background-color: #272727;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.miniplayer-container.expanded .track-thumbnail {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+.miniplayer-container.expanded .track-info {
+  display: flex;
+  flex-direction: column;
+  flex: 1 1 auto;
+  min-width: 0;
+  justify-content: center;
+}
+
+.miniplayer-container.expanded .track-title {
+  font-size: 13px;
+  font-weight: 600;
+  color: #ffffff;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  line-height: 1.3;
+}
+
+.miniplayer-container.expanded .track-channel {
+  font-size: 11px;
+  color: #aaaaaa;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  margin-top: 2px;
+}
+
+.miniplayer-container.expanded .header-actions {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  flex-shrink: 0;
+}
+
+.miniplayer-container.expanded .header-actions .btn-control {
+  width: 26px;
+  height: 26px;
+}
+
+.miniplayer-container.expanded .header-actions .btn-control svg {
+  width: 14px;
+  height: 14px;
+}
+
+/* Seção de Progresso com Slider e Tempos */
+.miniplayer-container.expanded .expanded-progress {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  margin: 4px 0;
+}
+
+.miniplayer-container.expanded .time-current,
+.miniplayer-container.expanded .time-total {
+  font-size: 10px;
+  font-variant-numeric: tabular-nums;
+  color: #aaaaaa;
+  min-width: 28px;
+  text-align: center;
+}
+
+/* Estilização moderna de input[type="range"] */
+.miniplayer-container.expanded input.progress-bar[type="range"] {
+  flex: 1;
+  -webkit-appearance: none;
+  appearance: none;
+  height: 4px;
+  border-radius: 2px;
+  background: #3e3e3e;
+  outline: none;
+  cursor: pointer;
+  transition: height 0.15s ease;
+}
+
+.miniplayer-container.expanded input.progress-bar[type="range"]:hover {
+  height: 6px;
+}
+
+.miniplayer-container.expanded input.progress-bar[type="range"]::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: #ff0000;
+  cursor: pointer;
+  box-shadow: 0 0 4px rgba(255, 0, 0, 0.7);
+  transition: transform 0.15s ease;
+}
+
+.miniplayer-container.expanded input.progress-bar[type="range"]:hover::-webkit-slider-thumb {
+  transform: scale(1.3);
+}
+
+.miniplayer-container.expanded input.progress-bar[type="range"]::-moz-range-thumb {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: #ff0000;
+  border: none;
+  cursor: pointer;
+  box-shadow: 0 0 4px rgba(255, 0, 0, 0.7);
+}
+
+/* Seção Inferior: Controles de Mídia Centralizados */
+.miniplayer-container.expanded .expanded-controls {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 16px;
+  width: 100%;
+}
+
+.miniplayer-container.expanded .expanded-controls .btn-control {
+  width: 34px;
+  height: 34px;
+}
+
+.miniplayer-container.expanded .expanded-controls .btn-control svg {
+  width: 18px;
+  height: 18px;
+}
+
+.miniplayer-container.expanded .expanded-controls .btn-control.btn-play {
+  width: 40px;
+  height: 40px;
+  background-color: rgba(255, 255, 255, 0.1);
+}
+
+.miniplayer-container.expanded .expanded-controls .btn-control.btn-play:hover {
+  background-color: rgba(255, 255, 255, 0.2);
+  transform: scale(1.06);
+}
+
+.miniplayer-container.expanded .expanded-controls .btn-control.btn-play svg {
+  width: 20px;
+  height: 20px;
+}
