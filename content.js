@@ -117,6 +117,20 @@
   }
 
   /**
+   * Verifica se o player do YouTube está exibindo anúncio in-stream
+   * @returns {boolean}
+   */
+  function isAdShowing() {
+    if (typeof document === 'undefined') return false;
+    const player =
+      document.querySelector('.html5-video-player') ||
+      document.querySelector('#movie_player');
+    return Boolean(
+      player && (player.classList.contains('ad-showing') || player.classList.contains('ad-interrupting'))
+    );
+  }
+
+  /**
    * Localiza o elemento <video> principal ativo no player do YouTube
    * @returns {HTMLVideoElement|null}
    */
@@ -133,10 +147,11 @@
   /**
    * Listener de redundância para o evento 'ended' do elemento <video>.
    * Se o vídeo chegar ao fim e o loop estiver ativo, força reinício imediato.
+   * Não executa reinício durante a exibição de anúncios.
    * @param {Event} event
    */
   function handleVideoEnded(event) {
-    if (!isLoopActive) return;
+    if (!isLoopActive || isAdShowing()) return;
 
     const video = (event && event.target) || getVideoElement();
     if (video) {
@@ -154,14 +169,15 @@
 
   /**
    * Sincroniza o estado de loop com o elemento <video> ativo.
-   * Aplica video.loop = isLoopActive e registra listener de redundância para 'ended'.
+   * Aplica video.loop = isLoopActive (se não houver anúncio) e registra listener de redundância para 'ended'.
    * @returns {HTMLVideoElement|null}
    */
   function applyLoopToVideo() {
     const video = getVideoElement();
     if (!video) return null;
 
-    video.loop = isLoopActive;
+    const isAd = isAdShowing();
+    video.loop = isLoopActive && !isAd;
 
     if (!video.__ytLoopEndedAttached) {
       video.addEventListener('ended', handleVideoEnded);
@@ -247,13 +263,19 @@
       toast.classList.remove('toast-enabled');
     }
 
+    const safeMessage = String(message)
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;');
+
     toast.innerHTML = `
       <span class="ytp-loop-toast-icon">
         <svg height="100%" version="1.1" viewBox="0 0 36 36" width="100%">
           <path class="ytp-svg-fill" d="M 7 11 L 10 8 L 10 10 L 23 10 C 25.2 10 27 11.8 27 14 L 27 18 L 24 18 L 24 14 C 24 13.4 23.6 13 23 13 L 10 13 L 10 15 Z M 29 25 L 26 28 L 26 26 L 13 26 C 10.8 26 9 24.2 9 22 L 9 18 L 12 18 L 12 22 C 12 22.6 12.4 23 13 23 L 26 23 L 26 21 Z" />
         </svg>
       </span>
-      <span class="ytp-loop-toast-text">${message}</span>
+      <span class="ytp-loop-toast-text">${safeMessage}</span>
     `.trim();
 
     toast.classList.add('show', 'animate-in');
@@ -403,6 +425,7 @@
       if (
         target.closest('[contenteditable="true"]') ||
         target.closest('[contenteditable=""]') ||
+        target.closest('[role="textbox"]') ||
         target.closest('input, textarea, select')
       ) {
         return true;
@@ -544,6 +567,7 @@
     setLoopState,
     loadLoopState,
     saveLoopState,
+    isAdShowing,
     getVideoElement,
     handleVideoEnded,
     applyLoopToVideo,

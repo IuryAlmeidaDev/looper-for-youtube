@@ -1,0 +1,13 @@
+# Superpowers & SDD artifacts
+.superpowers/
+
+# Node & logs
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# OS artifacts
+Thumbs.db
+Desktop.ini
+.DS_Store
