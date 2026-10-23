@@ -326,8 +326,8 @@
     if (!container) return null;
 
     let toast =
-      container.querySelector('.ytp-loop-toast') ||
-      document.querySelector('.ytp-loop-toast');
+      (container && typeof container.querySelector === 'function' ? container.querySelector('.ytp-loop-toast') : null) ||
+      (typeof document.querySelector === 'function' ? document.querySelector('.ytp-loop-toast') : null);
 
     if (!toast) {
       toast = document.createElement('div');
@@ -380,8 +380,12 @@
       toast.classList.add('animate-out');
 
       toastHideTimeout = setTimeout(() => {
-        if (toast && toast.parentNode) {
-          toast.parentNode.removeChild(toast);
+        if (toast) {
+          if (typeof toast.remove === 'function') {
+            toast.remove();
+          } else if (toast.parentNode && typeof toast.parentNode.removeChild === 'function') {
+            toast.parentNode.removeChild(toast);
+          }
         }
         toastHideTimeout = null;
       }, 250);
@@ -411,6 +415,11 @@
 
     // Notificar usuário via Toast
     showToast();
+
+    // Sincronizar com miniplayer PiP se aberto
+    if (typeof MiniPlayerController !== 'undefined' && MiniPlayerController && MiniPlayerController.pipWindow && !MiniPlayerController.pipWindow.closed) {
+      MiniPlayerController.syncPlaybackState(MiniPlayerController.pipWindow.document);
+    }
 
     return isLoopActive;
   }
@@ -568,6 +577,10 @@
     injectLoopButton();
     applyLoopToVideo();
     AdDestroyer.checkAndDestroyAds();
+    if (typeof MiniPlayerController !== 'undefined' && MiniPlayerController && MiniPlayerController.pipWindow && !MiniPlayerController.pipWindow.closed) {
+      MiniPlayerController.updateMetadata();
+      MiniPlayerController.attachMediaListeners();
+    }
   }
 
   /**
@@ -657,6 +670,16 @@
       .replace(/'/g, '&#39;');
   }
 
+  // Ícones SVG inline para autonomia e compatibilidade estrita Manifest V3 CSP
+  const svgPrev = '<svg viewBox="0 0 24 24"><path d="M6 6h2v12H6zm3.5 6l8.5 6V6z" fill="currentColor"/></svg>';
+  const svgPlay = '<svg viewBox="0 0 24 24"><path d="M8 5v14l11-7z" fill="currentColor"/></svg>';
+  const svgPause = '<svg viewBox="0 0 24 24"><path d="M6 19h4V5H6v14zm8-14v14h4V5h-4z" fill="currentColor"/></svg>';
+  const svgNext = '<svg viewBox="0 0 24 24"><path d="M6 18l8.5-6L6 6v12zM16 6v12h2V6h-2z" fill="currentColor"/></svg>';
+  const svgLoop = '<svg viewBox="0 0 24 24"><path d="M7 7h10v3l4-4-4-4v3H5v6h2V7zm10 10H7v-3l-4 4 4 4v-3h12v-6h-2v4z" fill="currentColor"/></svg>';
+  const svgExpand = '<svg viewBox="0 0 24 24"><path d="M15 3h6v6M9 21H3v-6M21 3l-7 7M3 21l7-7" stroke="currentColor" stroke-width="2" stroke-linecap="round" fill="none"/></svg>';
+  const svgCollapse = '<svg viewBox="0 0 24 24"><path d="M4 14h6v6M20 10h-6V4M14 10l7-7M10 14l-7 7" stroke="currentColor" stroke-width="2" stroke-linecap="round" fill="none"/></svg>';
+  const svgClose = '<svg viewBox="0 0 24 24"><path d="M18 6L6 18M6 6l12 12" stroke="currentColor" stroke-width="2" stroke-linecap="round" fill="none"/></svg>';
+
   /**
    * Gera a string HTML completa estruturada para a janela Document Picture-in-Picture.
    * Suporta os modos Pílula (~54px) e Expandido (~180px).
@@ -686,16 +709,6 @@
     // Miniatura com fallback seguro
     const defaultThumbSvg = 'data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" viewBox="0 0 24 24" fill="%23666"><rect width="24" height="24" fill="%23222"/><path d="M12 3v10.55c-.59-.34-1.27-.55-2-.55-2.21 0-4 1.79-4 4s1.79 4 4 4 4-1.79 4-4V7h4V3h-6z" fill="%23aaa"/></svg>';
     const thumbnail = opts.thumbnail ? escapeHtml(opts.thumbnail) : defaultThumbSvg;
-
-    // Ícones SVG inline para autonomia e compatibilidade estrita Manifest V3 CSP
-    const svgPrev = '<svg viewBox="0 0 24 24"><path d="M6 6h2v12H6zm3.5 6l8.5 6V6z" fill="currentColor"/></svg>';
-    const svgPlay = '<svg viewBox="0 0 24 24"><path d="M8 5v14l11-7z" fill="currentColor"/></svg>';
-    const svgPause = '<svg viewBox="0 0 24 24"><path d="M6 19h4V5H6v14zm8-14v14h4V5h-4z" fill="currentColor"/></svg>';
-    const svgNext = '<svg viewBox="0 0 24 24"><path d="M6 18l8.5-6L6 6v12zM16 6v12h2V6h-2z" fill="currentColor"/></svg>';
-    const svgLoop = '<svg viewBox="0 0 24 24"><path d="M7 7h10v3l4-4-4-4v3H5v6h2V7zm10 10H7v-3l-4 4 4 4v-3h12v-6h-2v4z" fill="currentColor"/></svg>';
-    const svgExpand = '<svg viewBox="0 0 24 24"><path d="M15 3h6v6M9 21H3v-6M21 3l-7 7M3 21l7-7" stroke="currentColor" stroke-width="2" stroke-linecap="round" fill="none"/></svg>';
-    const svgCollapse = '<svg viewBox="0 0 24 24"><path d="M4 14h6v6M20 10h-6V4M14 10l7-7M10 14l-7 7" stroke="currentColor" stroke-width="2" stroke-linecap="round" fill="none"/></svg>';
-    const svgClose = '<svg viewBox="0 0 24 24"><path d="M18 6L6 18M6 6l12 12" stroke="currentColor" stroke-width="2" stroke-linecap="round" fill="none"/></svg>';
 
     const playIcon = isPlaying ? svgPause : svgPlay;
     const playTitle = isPlaying ? 'Pausar' : 'Reproduzir';
@@ -793,7 +806,15 @@
   const MiniPlayerController = {
     pipWindow: null,
     isPillMode: true,
+    isScrubbing: false,
     _beforeUnloadAttached: false,
+    _navListenerAttached: false,
+    _boundVideo: null,
+    _onVideoPlay: null,
+    _onVideoPause: null,
+    _onVideoTimeUpdate: null,
+    _onVideoDurationChange: null,
+    _onVideoEnded: null,
 
     /**
      * Formata tempo em string MM:SS
@@ -989,6 +1010,372 @@
       });
 
       this.pipWindow.document.body.innerHTML = html;
+      this.bindWindowEvents(this.pipWindow.document);
+    },
+
+    /**
+     * Associa eventos de clique e arrasto aos elementos da janela PiP
+     * @param {Document} [doc]
+     */
+    bindWindowEvents(doc) {
+      const pipDoc = doc || (this.pipWindow ? this.pipWindow.document : null);
+      if (!pipDoc) return;
+
+      // 1. Play / Pause
+      const playBtn = pipDoc.querySelector('.btn-play');
+      if (playBtn && !playBtn.__ytPiPClickAttached) {
+        playBtn.addEventListener('click', (e) => {
+          if (e) {
+            if (typeof e.preventDefault === 'function') e.preventDefault();
+            if (typeof e.stopPropagation === 'function') e.stopPropagation();
+          }
+          const video = typeof getVideoElement === 'function' ? getVideoElement() : (typeof document !== 'undefined' ? document.querySelector('video') : null);
+          if (video) {
+            if (video.paused) {
+              try {
+                const p = video.play();
+                if (p && typeof p.catch === 'function') p.catch(() => {});
+              } catch (err) {}
+            } else {
+              try {
+                video.pause();
+              } catch (err) {}
+            }
+          }
+          this.syncPlaybackState(pipDoc);
+        });
+        playBtn.__ytPiPClickAttached = true;
+      }
+
+      // 2. Próxima faixa (.btn-next -> .ytp-next-button)
+      const nextBtn = pipDoc.querySelector('.btn-next');
+      if (nextBtn && !nextBtn.__ytPiPClickAttached) {
+        nextBtn.addEventListener('click', (e) => {
+          if (e) {
+            if (typeof e.preventDefault === 'function') e.preventDefault();
+            if (typeof e.stopPropagation === 'function') e.stopPropagation();
+          }
+          const ytpNext = (typeof document !== 'undefined') ? document.querySelector('.ytp-next-button') : null;
+          if (ytpNext && typeof ytpNext.click === 'function') {
+            ytpNext.click();
+          }
+        });
+        nextBtn.__ytPiPClickAttached = true;
+      }
+
+      // 3. Faixa anterior (.btn-prev -> >3s reset para 0; <=3s .ytp-prev-button ou history.back())
+      const prevBtn = pipDoc.querySelector('.btn-prev');
+      if (prevBtn && !prevBtn.__ytPiPClickAttached) {
+        prevBtn.addEventListener('click', (e) => {
+          if (e) {
+            if (typeof e.preventDefault === 'function') e.preventDefault();
+            if (typeof e.stopPropagation === 'function') e.stopPropagation();
+          }
+          const video = typeof getVideoElement === 'function' ? getVideoElement() : (typeof document !== 'undefined' ? document.querySelector('video') : null);
+          if (video && typeof video.currentTime === 'number' && video.currentTime > 3) {
+            video.currentTime = 0;
+            this.syncTimeAndProgress(pipDoc);
+          } else {
+            const ytpPrev = (typeof document !== 'undefined') ? document.querySelector('.ytp-prev-button') : null;
+            if (ytpPrev && typeof ytpPrev.click === 'function') {
+              ytpPrev.click();
+            } else if (typeof history !== 'undefined' && typeof history.back === 'function') {
+              history.back();
+            }
+          }
+        });
+        prevBtn.__ytPiPClickAttached = true;
+      }
+
+      // 4. Alternar repetição (.btn-loop)
+      const loopBtn = pipDoc.querySelector('.btn-loop');
+      if (loopBtn && !loopBtn.__ytPiPClickAttached) {
+        loopBtn.addEventListener('click', (e) => {
+          if (e) {
+            if (typeof e.preventDefault === 'function') e.preventDefault();
+            if (typeof e.stopPropagation === 'function') e.stopPropagation();
+          }
+          toggleLoopState();
+          this.syncPlaybackState(pipDoc);
+        });
+        loopBtn.__ytPiPClickAttached = true;
+      }
+
+      // 5. Alternar modo de janela (.btn-toggle-mode)
+      const toggleModeBtn = pipDoc.querySelector('.btn-toggle-mode');
+      if (toggleModeBtn && !toggleModeBtn.__ytPiPClickAttached) {
+        toggleModeBtn.addEventListener('click', (e) => {
+          if (e) {
+            if (typeof e.preventDefault === 'function') e.preventDefault();
+            if (typeof e.stopPropagation === 'function') e.stopPropagation();
+          }
+          this.toggleMode();
+        });
+        toggleModeBtn.__ytPiPClickAttached = true;
+      }
+
+      // 6. Fechar janela (.btn-close)
+      const closeBtn = pipDoc.querySelector('.btn-close');
+      if (closeBtn && !closeBtn.__ytPiPClickAttached) {
+        closeBtn.addEventListener('click', (e) => {
+          if (e) {
+            if (typeof e.preventDefault === 'function') e.preventDefault();
+            if (typeof e.stopPropagation === 'function') e.stopPropagation();
+          }
+          this.close();
+        });
+        closeBtn.__ytPiPClickAttached = true;
+      }
+
+      // 7. Slider de busca e progresso (.progress-bar)
+      const progressBar = pipDoc.querySelector('.progress-bar');
+      if (progressBar && !progressBar.__ytPiPSeekAttached) {
+        const onScrubStart = () => {
+          this.isScrubbing = true;
+        };
+
+        const onScrubInput = () => {
+          this.isScrubbing = true;
+          const video = typeof getVideoElement === 'function' ? getVideoElement() : (typeof document !== 'undefined' ? document.querySelector('video') : null);
+          const duration = (video && typeof video.duration === 'number' && isFinite(video.duration)) ? video.duration : 0;
+          const val = parseFloat(progressBar.value) || 0;
+          const seekTime = (val / 100) * duration;
+          const timeCurrentEl = pipDoc.querySelector('.time-current');
+          if (timeCurrentEl) {
+            timeCurrentEl.textContent = formatTime(seekTime);
+          }
+        };
+
+        const onScrubCommit = () => {
+          const video = typeof getVideoElement === 'function' ? getVideoElement() : (typeof document !== 'undefined' ? document.querySelector('video') : null);
+          const duration = (video && typeof video.duration === 'number' && isFinite(video.duration)) ? video.duration : 0;
+          const val = parseFloat(progressBar.value) || 0;
+          if (video && duration > 0) {
+            video.currentTime = (val / 100) * duration;
+          }
+          this.isScrubbing = false;
+          this.syncTimeAndProgress(pipDoc);
+        };
+
+        progressBar.addEventListener('mousedown', onScrubStart);
+        progressBar.addEventListener('touchstart', onScrubStart);
+        progressBar.addEventListener('pointerdown', onScrubStart);
+
+        progressBar.addEventListener('input', onScrubInput);
+        progressBar.addEventListener('change', onScrubCommit);
+
+        progressBar.addEventListener('mouseup', onScrubCommit);
+        progressBar.addEventListener('touchend', onScrubCommit);
+        progressBar.addEventListener('pointerup', onScrubCommit);
+
+        progressBar.__ytPiPSeekAttached = true;
+      }
+
+      this.syncPlaybackState(pipDoc);
+      this.syncTimeAndProgress(pipDoc);
+    },
+
+    /**
+     * Sincroniza Play/Pause e Loop no PiP de acordo com o vídeo da página
+     * @param {Document} [doc]
+     */
+    syncPlaybackState(doc) {
+      const pipDoc = doc || (this.pipWindow ? this.pipWindow.document : null);
+      if (!pipDoc) return;
+
+      const video = typeof getVideoElement === 'function' ? getVideoElement() : (typeof document !== 'undefined' ? document.querySelector('video') : null);
+      const isPlaying = Boolean(video && !video.paused && !video.ended);
+      const isLoop = getLoopState();
+
+      // Sincronizar botão Play/Pause
+      const playBtn = pipDoc.querySelector('.btn-play');
+      if (playBtn) {
+        if (isPlaying) {
+          if (playBtn.classList && typeof playBtn.classList.add === 'function') {
+            playBtn.classList.add('playing');
+          }
+          playBtn.setAttribute('title', 'Pausar');
+          playBtn.setAttribute('aria-label', 'Pausar');
+          playBtn.innerHTML = svgPause;
+        } else {
+          if (playBtn.classList && typeof playBtn.classList.remove === 'function') {
+            playBtn.classList.remove('playing');
+          }
+          playBtn.setAttribute('title', 'Reproduzir');
+          playBtn.setAttribute('aria-label', 'Reproduzir');
+          playBtn.innerHTML = svgPlay;
+        }
+      }
+
+      // Sincronizar botão Loop
+      const loopBtn = pipDoc.querySelector('.btn-loop');
+      if (loopBtn) {
+        if (isLoop) {
+          if (loopBtn.classList && typeof loopBtn.classList.add === 'function') {
+            loopBtn.classList.add('active');
+          }
+          loopBtn.setAttribute('title', 'Repetir (Ativado)');
+          loopBtn.setAttribute('aria-label', 'Repetir (Ativado)');
+        } else {
+          if (loopBtn.classList && typeof loopBtn.classList.remove === 'function') {
+            loopBtn.classList.remove('active');
+          }
+          loopBtn.setAttribute('title', 'Repetir');
+          loopBtn.setAttribute('aria-label', 'Repetir');
+        }
+      }
+    },
+
+    /**
+     * Sincroniza tempos (01:23 / 04:00) e slider de progresso em tempo real
+     * @param {Document} [doc]
+     */
+    syncTimeAndProgress(doc) {
+      const pipDoc = doc || (this.pipWindow ? this.pipWindow.document : null);
+      if (!pipDoc) return;
+
+      const video = typeof getVideoElement === 'function' ? getVideoElement() : (typeof document !== 'undefined' ? document.querySelector('video') : null);
+      const currentTime = (video && typeof video.currentTime === 'number') ? video.currentTime : 0;
+      const duration = (video && typeof video.duration === 'number' && isFinite(video.duration)) ? video.duration : 0;
+
+      const timeCurrentEl = pipDoc.querySelector('.time-current');
+      if (timeCurrentEl && !this.isScrubbing) {
+        timeCurrentEl.textContent = formatTime(currentTime);
+      }
+
+      const timeTotalEl = pipDoc.querySelector('.time-total');
+      if (timeTotalEl) {
+        timeTotalEl.textContent = formatTime(duration);
+      }
+
+      const progressBar = pipDoc.querySelector('.progress-bar');
+      if (progressBar && !this.isScrubbing) {
+        const pct = duration > 0 ? (currentTime / duration) * 100 : 0;
+        progressBar.value = String(pct);
+      }
+    },
+
+    /**
+     * Atualiza título, canal e thumbnail na janela PiP aberta quando a música mudar (ex: navegação SPA)
+     * @returns {Object|null}
+     */
+    updateMetadata() {
+      if (!this.pipWindow || this.pipWindow.closed) return null;
+      const pipDoc = this.pipWindow.document;
+      if (!pipDoc) return null;
+
+      const metadata = this.getTrackMetadata();
+
+      // Atualiza títulos
+      const titleEls = pipDoc.querySelectorAll('.track-title');
+      if (titleEls && titleEls.length > 0) {
+        for (const el of titleEls) {
+          el.textContent = metadata.title;
+          el.setAttribute('title', metadata.title);
+        }
+      }
+
+      // Atualiza canais
+      const channelEls = pipDoc.querySelectorAll('.track-channel');
+      if (channelEls && channelEls.length > 0) {
+        for (const el of channelEls) {
+          el.textContent = metadata.channel;
+          el.setAttribute('title', metadata.channel);
+        }
+      }
+
+      // Atualiza thumbnail
+      const thumbEl = pipDoc.querySelector('.track-thumbnail');
+      if (thumbEl) {
+        if (metadata.thumbnail) {
+          thumbEl.setAttribute('src', metadata.thumbnail);
+        }
+        thumbEl.setAttribute('alt', metadata.title);
+      }
+
+      // Atualiza tempo total
+      const totalEl = pipDoc.querySelector('.time-total');
+      if (totalEl) {
+        totalEl.textContent = formatTime(metadata.duration);
+      }
+
+      this.syncPlaybackState(pipDoc);
+      this.syncTimeAndProgress(pipDoc);
+      this.attachMediaListeners();
+
+      return metadata;
+    },
+
+    /**
+     * Anexa ouvintes de ciclo de vida de reprodução ao elemento <video>
+     */
+    attachMediaListeners() {
+      const video = typeof getVideoElement === 'function' ? getVideoElement() : (typeof document !== 'undefined' ? document.querySelector('video') : null);
+      if (!video) return;
+
+      if (this._boundVideo === video) {
+        return;
+      }
+
+      this.detachMediaListeners();
+
+      this._boundVideo = video;
+      this._onVideoPlay = () => this.syncPlaybackState();
+      this._onVideoPause = () => this.syncPlaybackState();
+      this._onVideoTimeUpdate = () => this.syncTimeAndProgress();
+      this._onVideoDurationChange = () => {
+        this.syncTimeAndProgress();
+        if (this.pipWindow && this.pipWindow.document) {
+          const totalEl = this.pipWindow.document.querySelector('.time-total');
+          if (totalEl) totalEl.textContent = formatTime(video.duration || 0);
+        }
+      };
+      this._onVideoEnded = () => {
+        this.syncPlaybackState();
+        this.syncTimeAndProgress();
+      };
+
+      if (typeof video.addEventListener === 'function') {
+        video.addEventListener('play', this._onVideoPlay);
+        video.addEventListener('pause', this._onVideoPause);
+        video.addEventListener('timeupdate', this._onVideoTimeUpdate);
+        video.addEventListener('durationchange', this._onVideoDurationChange);
+        video.addEventListener('ended', this._onVideoEnded);
+      }
+    },
+
+    /**
+     * Remove os ouvintes anexados ao <video>
+     */
+    detachMediaListeners() {
+      if (this._boundVideo && typeof this._boundVideo.removeEventListener === 'function') {
+        try {
+          if (this._onVideoPlay) this._boundVideo.removeEventListener('play', this._onVideoPlay);
+          if (this._onVideoPause) this._boundVideo.removeEventListener('pause', this._onVideoPause);
+          if (this._onVideoTimeUpdate) this._boundVideo.removeEventListener('timeupdate', this._onVideoTimeUpdate);
+          if (this._onVideoDurationChange) this._boundVideo.removeEventListener('durationchange', this._onVideoDurationChange);
+          if (this._onVideoEnded) this._boundVideo.removeEventListener('ended', this._onVideoEnded);
+        } catch (e) {}
+      }
+      this._boundVideo = null;
+      this._onVideoPlay = null;
+      this._onVideoPause = null;
+      this._onVideoTimeUpdate = null;
+      this._onVideoDurationChange = null;
+      this._onVideoEnded = null;
+    },
+
+    /**
+     * Configura ouvinte para evento de navegação SPA yt-navigate-finish
+     */
+    setupNavigationListener() {
+      if (this._navListenerAttached || typeof window === 'undefined') return;
+      this._navListenerAttached = true;
+      window.addEventListener('yt-navigate-finish', () => {
+        if (this.pipWindow && !this.pipWindow.closed) {
+          this.updateMetadata();
+        }
+      });
     },
 
     /**
@@ -1021,9 +1408,12 @@
         // Injeta folha de estilos e marcação HTML
         this.injectStyles(this.pipWindow.document);
         this.renderContent();
+        this.attachMediaListeners();
+        this.setupNavigationListener();
 
         // Limpeza idempotente caso a janela seja fechada pelo usuário
         this.pipWindow.addEventListener('pagehide', () => {
+          this.detachMediaListeners();
           this.pipWindow = null;
         }, { once: true });
 
@@ -1040,6 +1430,8 @@
      * Fecha a janela PiP de forma segura e redefine referências
      */
     close() {
+      this.detachMediaListeners();
+      this.isScrubbing = false;
       if (this.pipWindow) {
         try {
           if (!this.pipWindow.closed && typeof this.pipWindow.close === 'function') {
@@ -1159,6 +1551,8 @@
       if (MiniPlayerController.pipWindow) {
         MiniPlayerController.close();
       }
+      MiniPlayerController.detachMediaListeners();
+      MiniPlayerController.isScrubbing = false;
       MiniPlayerController.isPillMode = true;
     }
   };
