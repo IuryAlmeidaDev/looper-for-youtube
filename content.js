@@ -273,7 +273,7 @@
     const isAd = isAdShowing();
     video.loop = isLoopActive && !isAd;
 
-    if (!video.__ytLoopEndedAttached) {
+    if (typeof video.addEventListener === 'function' && !video.__ytLoopEndedAttached) {
       video.addEventListener('ended', handleVideoEnded);
       video.__ytLoopEndedAttached = true;
     }
@@ -773,6 +773,324 @@
 </div>`.trim();
   }
 
+  // ==========================================================================
+  // 6. Gerenciador Document Picture-in-Picture (Mini Player Flutuante)
+  // ==========================================================================
+  const STORAGE_KEY_PIP_MODE = 'yt_looper_pip_mode';
+
+  /**
+   * Formata segundos no padrão MM:SS
+   * @param {number} seconds
+   * @returns {string}
+   */
+  function formatTime(seconds) {
+    if (!seconds || isNaN(seconds) || !isFinite(seconds) || seconds < 0) return '0:00';
+    const mins = Math.floor(seconds / 60);
+    const secs = Math.floor(seconds % 60);
+    return `${mins}:${secs < 10 ? '0' : ''}${secs}`;
+  }
+
+  const MiniPlayerController = {
+    pipWindow: null,
+    isPillMode: true,
+    _beforeUnloadAttached: false,
+
+    /**
+     * Formata tempo em string MM:SS
+     * @param {number} seconds
+     * @returns {string}
+     */
+    formatTime,
+
+    /**
+     * Extrai metadados do vídeo em reprodução de forma resiliente
+     * @returns {{ title: string, channel: string, thumbnail: string, currentTime: number, duration: number, isPlaying: boolean }}
+     */
+    getTrackMetadata() {
+      let title = '';
+      if (typeof document !== 'undefined') {
+        const titleEl = document.querySelector('h1.ytd-watch-metadata yt-formatted-string, #title h1 yt-formatted-string, ytd-watch-metadata h1 yt-formatted-string');
+        if (titleEl && titleEl.textContent) {
+          title = titleEl.textContent.trim();
+        }
+        if (!title && document.title) {
+          title = document.title.replace(' - YouTube', '').trim();
+        }
+      }
+      if (!title) {
+        title = 'YouTube Video';
+      }
+
+      let channel = '';
+      if (typeof document !== 'undefined') {
+        const channelEl = document.querySelector('#channel-name a, ytd-channel-name a, .ytd-channel-name a');
+        if (channelEl && channelEl.textContent) {
+          channel = channelEl.textContent.trim();
+        }
+      }
+      if (!channel) {
+        channel = 'YouTube';
+      }
+
+      let thumbnail = '';
+      let videoId = '';
+      if (typeof window !== 'undefined' && window.location) {
+        try {
+          if (window.location.search) {
+            const urlParams = new URLSearchParams(window.location.search);
+            videoId = urlParams.get('v') || '';
+          }
+          if (!videoId && window.location.href) {
+            const match = window.location.href.match(/[?&]v=([a-zA-Z0-9_-]{11})/);
+            if (match) {
+              videoId = match[1];
+            }
+          }
+        } catch (e) {
+          // Fallback silencioso
+        }
+      }
+      if (videoId) {
+        thumbnail = `https://i.ytimg.com/vi/${videoId}/hqdefault.jpg`;
+      }
+
+      const video = typeof getVideoElement === 'function' ? getVideoElement() : (typeof document !== 'undefined' ? document.querySelector('video') : null);
+      const currentTime = video && typeof video.currentTime === 'number' ? video.currentTime : 0;
+      const duration = video && typeof video.duration === 'number' && isFinite(video.duration) ? video.duration : 0;
+      const isPlaying = Boolean(video && !video.paused && !video.ended && (video.readyState === undefined || video.readyState > 2));
+
+      return {
+        title,
+        channel,
+        thumbnail,
+        currentTime,
+        duration,
+        isPlaying
+      };
+    },
+
+    /**
+     * Carrega a preferência de layout (Pílula ou Expandido) do storage
+     * @returns {Promise<boolean>}
+     */
+    async loadModePreference() {
+      try {
+        if (typeof chrome !== 'undefined' && chrome.storage && chrome.storage.local) {
+          const stored = await new Promise((resolve) => {
+            try {
+              chrome.storage.local.get([STORAGE_KEY_PIP_MODE], (result) => {
+                if (chrome.runtime && chrome.runtime.lastError) {
+                  resolve(null);
+                } else {
+                  resolve(result);
+                }
+              });
+            } catch (err) {
+              resolve(null);
+            }
+          });
+          if (stored && typeof stored[STORAGE_KEY_PIP_MODE] === 'boolean') {
+            this.isPillMode = stored[STORAGE_KEY_PIP_MODE];
+            return this.isPillMode;
+          }
+        }
+      } catch (e) {
+        // Fallback silencioso
+      }
+
+      try {
+        if (typeof localStorage !== 'undefined') {
+          const localVal = localStorage.getItem(STORAGE_KEY_PIP_MODE);
+          if (localVal !== null) {
+            this.isPillMode = localVal === 'true';
+            return this.isPillMode;
+          }
+        }
+      } catch (e) {
+        // Fallback silencioso
+      }
+
+      if (typeof this.isPillMode !== 'boolean') {
+        this.isPillMode = true;
+      }
+      return this.isPillMode;
+    },
+
+    /**
+     * Salva a preferência de layout no storage
+     * @param {boolean} isPill
+     * @returns {Promise<boolean>}
+     */
+    async saveModePreference(isPill) {
+      this.isPillMode = Boolean(isPill);
+
+      try {
+        if (typeof chrome !== 'undefined' && chrome.storage && chrome.storage.local) {
+          await new Promise((resolve) => {
+            try {
+              chrome.storage.local.set({ [STORAGE_KEY_PIP_MODE]: this.isPillMode }, () => {
+                resolve();
+              });
+            } catch (err) {
+              resolve();
+            }
+          });
+        }
+      } catch (e) {
+        // Fallback silencioso
+      }
+
+      try {
+        if (typeof localStorage !== 'undefined') {
+          localStorage.setItem(STORAGE_KEY_PIP_MODE, String(this.isPillMode));
+        }
+      } catch (e) {
+        // Fallback silencioso
+      }
+
+      return this.isPillMode;
+    },
+
+    /**
+     * Injeta folha de estilos miniplayer.css no documento PiP
+     * @param {Document} pipDoc
+     */
+    injectStyles(pipDoc) {
+      if (!pipDoc || !pipDoc.head) return;
+      const link = pipDoc.createElement('link');
+      link.setAttribute('rel', 'stylesheet');
+      const cssUrl = (typeof chrome !== 'undefined' && chrome.runtime && typeof chrome.runtime.getURL === 'function')
+        ? chrome.runtime.getURL('miniplayer.css')
+        : 'miniplayer.css';
+      link.setAttribute('href', cssUrl);
+      pipDoc.head.appendChild(link);
+    },
+
+    /**
+     * Renderiza o HTML do miniplayer dentro da janela PiP
+     */
+    renderContent() {
+      if (!this.pipWindow || !this.pipWindow.document || !this.pipWindow.document.body) return;
+      const metadata = this.getTrackMetadata();
+      const duration = metadata.duration || 0;
+      const currentTime = metadata.currentTime || 0;
+      const progressPercent = duration > 0 ? (currentTime / duration) * 100 : 0;
+
+      const html = renderMiniPlayerHTML({
+        isPill: this.isPillMode,
+        title: metadata.title,
+        channel: metadata.channel,
+        thumbnail: metadata.thumbnail,
+        isLoopActive: getLoopState(),
+        isPlaying: metadata.isPlaying,
+        currentTimeStr: formatTime(currentTime),
+        durationStr: formatTime(duration),
+        progressPercent
+      });
+
+      this.pipWindow.document.body.innerHTML = html;
+    },
+
+    /**
+     * Abre a janela Document Picture-in-Picture ou foca nela caso já esteja aberta
+     * @returns {Promise<Window|null>}
+     */
+    async open() {
+      if (typeof window === 'undefined' || !window.documentPictureInPicture || typeof window.documentPictureInPicture.requestWindow !== 'function') {
+        return null;
+      }
+
+      if (this.pipWindow && !this.pipWindow.closed) {
+        if (typeof this.pipWindow.focus === 'function') {
+          this.pipWindow.focus();
+        }
+        return this.pipWindow;
+      }
+
+      try {
+        await this.loadModePreference();
+        const width = this.isPillMode ? 340 : 360;
+        const height = this.isPillMode ? 54 : 180;
+
+        this.pipWindow = await window.documentPictureInPicture.requestWindow({ width, height });
+
+        if (!this.pipWindow) {
+          return null;
+        }
+
+        // Injeta folha de estilos e marcação HTML
+        this.injectStyles(this.pipWindow.document);
+        this.renderContent();
+
+        // Limpeza idempotente caso a janela seja fechada pelo usuário
+        this.pipWindow.addEventListener('pagehide', () => {
+          this.pipWindow = null;
+        }, { once: true });
+
+        // Listener para fechar o PiP se a aba principal for fechada
+        this.setupBeforeUnload();
+
+        return this.pipWindow;
+      } catch (err) {
+        return null;
+      }
+    },
+
+    /**
+     * Fecha a janela PiP de forma segura e redefine referências
+     */
+    close() {
+      if (this.pipWindow) {
+        try {
+          if (!this.pipWindow.closed && typeof this.pipWindow.close === 'function') {
+            this.pipWindow.close();
+          }
+        } catch (e) {
+          // Fallback silencioso
+        }
+        this.pipWindow = null;
+      }
+    },
+
+    /**
+     * Alterna entre modo Pílula (340x54) e Expandido (360x180), redimensionando a janela
+     * e re-renderizando a interface.
+     * @returns {Promise<boolean>}
+     */
+    async toggleMode() {
+      this.isPillMode = !this.isPillMode;
+      await this.saveModePreference(this.isPillMode);
+
+      if (this.pipWindow && !this.pipWindow.closed) {
+        const width = this.isPillMode ? 340 : 360;
+        const height = this.isPillMode ? 54 : 180;
+        if (typeof this.pipWindow.resizeTo === 'function') {
+          try {
+            this.pipWindow.resizeTo(width, height);
+          } catch (e) {
+            // Alguns navegadores restringem resizeTo
+          }
+        }
+        this.renderContent();
+      }
+
+      return this.isPillMode;
+    },
+
+    /**
+     * Registra o evento beforeunload na janela principal para fechar o PiP graciosamente
+     */
+    setupBeforeUnload() {
+      if (this._beforeUnloadAttached || typeof window === 'undefined') return;
+      this._beforeUnloadAttached = true;
+      window.addEventListener('beforeunload', () => {
+        if (this.pipWindow && !this.pipWindow.closed) {
+          this.close();
+        }
+      });
+    }
+  };
+
   // Execução automática ao carregar no contexto do navegador
   if (typeof window !== 'undefined' && typeof document !== 'undefined') {
     if (document.readyState === 'loading') {
@@ -813,6 +1131,7 @@
     AdDestroyer,
     escapeHtml,
     renderMiniPlayerHTML,
+    MiniPlayerController,
     _resetState: () => {
       isLoopActive = false;
       isGlobalListenersAttached = false;
@@ -837,6 +1156,10 @@
         AdDestroyer.checkIntervalId = null;
       }
       AdDestroyer.isHandlingAd = false;
+      if (MiniPlayerController.pipWindow) {
+        MiniPlayerController.close();
+      }
+      MiniPlayerController.isPillMode = true;
     }
   };
 
