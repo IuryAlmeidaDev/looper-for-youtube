@@ -14,6 +14,7 @@ const fs = require('fs');
 const path = require('path');
 const vm = require('vm');
 const assert = require('assert');
+const cp = require('child_process');
 
 // Diretório raiz da extensão
 const ROOT_DIR = __dirname;
@@ -362,10 +363,10 @@ async function main() {
     assert.strictEqual(manifest.manifest_version, 3, 'manifest_version deve ser 3');
   });
 
-  await runTest('Manifest', 'Metadados obrigatórios presentes e válidos (name, version, description)', () => {
+  await runTest('Manifest', 'Metadados obrigatórios presentes e válidos (name, version 1.1.0, description)', () => {
     assert.strictEqual(manifest.name, 'Looper for YouTube - Music & Video Repeat', 'name deve ser "Looper for YouTube - Music & Video Repeat"');
     assert.strictEqual(manifest.short_name, 'Looper for YouTube', 'short_name deve ser "Looper for YouTube"');
-    assert.ok(typeof manifest.version === 'string' && manifest.version.length > 0, 'version deve ser preenchida');
+    assert.strictEqual(manifest.version, '1.1.0', 'version deve ser 1.1.0');
     assert.ok(typeof manifest.description === 'string' && manifest.description.length > 0, 'description deve ser preenchida');
   });
 
@@ -398,13 +399,24 @@ async function main() {
     assert.strictEqual(cs.run_at, 'document_idle', 'run_at deve ser document_idle');
   });
 
+  await runTest('Manifest', 'web_accessible_resources configurado contendo miniplayer.css', () => {
+    assert.ok(Array.isArray(manifest.web_accessible_resources), 'web_accessible_resources deve ser um array');
+    assert.ok(manifest.web_accessible_resources.length > 0, 'web_accessible_resources deve ter ao menos 1 entrada');
+    const war = manifest.web_accessible_resources[0];
+    assert.ok(Array.isArray(war.resources), 'resources deve ser um array');
+    assert.ok(war.resources.includes('miniplayer.css'), 'resources deve incluir "miniplayer.css"');
+    assert.ok(war.matches.includes('https://www.youtube.com/*'), 'matches deve incluir youtube.com/*');
+  });
+
   await runTest('Manifest', 'Todos os arquivos referenciados no manifest.json existem fisicamente no disco', () => {
+    const webAccessible = (manifest.web_accessible_resources || []).flatMap(r => r.resources || []);
     const referencedFiles = [
       manifest.action.default_icon['16'],
       manifest.action.default_icon['48'],
       manifest.action.default_icon['128'],
       ...manifest.content_scripts[0].js,
-      ...manifest.content_scripts[0].css
+      ...manifest.content_scripts[0].css,
+      ...webAccessible
     ];
 
     for (const relPath of referencedFiles) {
@@ -433,7 +445,7 @@ async function main() {
   // --------------------------------------------------------------------------
   // SUÍTE 3: FOLHA DE ESTILOS CSS
   // --------------------------------------------------------------------------
-  console.log('\n[SUÍTE 3] Sintaxe e Seletores da Folha de Estilos (content.css)');
+  console.log('\n[SUÍTE 3] Sintaxe e Seletores das Folhas de Estilos (content.css & miniplayer.css)');
   const cssPath = path.join(ROOT_DIR, 'content.css');
   let cssContent = '';
 
@@ -461,6 +473,11 @@ async function main() {
     assert.ok(cssContent.includes('::after'), 'Deve definir indicador pontual .active::after');
   });
 
+  await runTest('CSS', 'Presença de seletores do botão de mini player PiP (.ytp-pip-button)', () => {
+    assert.ok(cssContent.includes('.ytp-pip-button'), 'Deve definir classe .ytp-pip-button');
+    assert.ok(cssContent.includes('.ytp-pip-button:hover'), 'Deve definir hover para .ytp-pip-button');
+  });
+
   await runTest('CSS', 'Presença de seletores e estados da notificação Toast flutuante (.ytp-loop-toast)', () => {
     assert.ok(cssContent.includes('.ytp-loop-toast'), 'Deve conter estilo principal para .ytp-loop-toast');
     assert.ok(cssContent.includes('.toast-enabled'), 'Deve estilizar toast no modo ativado (.toast-enabled)');
@@ -478,6 +495,35 @@ async function main() {
   await runTest('CSS', 'Compatibilidade responsiva com modos do player (.ytp-fullscreen e .ytp-small-mode)', () => {
     assert.ok(cssContent.includes('.ytp-fullscreen'), 'Deve adaptar estilos para tela cheia');
     assert.ok(cssContent.includes('.ytp-small-mode'), 'Deve adaptar estilos para miniplayer / tamanho reduzido');
+  });
+
+  const miniCssPath = path.join(ROOT_DIR, 'miniplayer.css');
+  let miniCssContent = '';
+
+  await runTest('CSS', 'Arquivo miniplayer.css existe fisicamente no disco e possui conteúdo', () => {
+    assert.strictEqual(fs.existsSync(miniCssPath), true, 'miniplayer.css deve existir');
+    miniCssContent = fs.readFileSync(miniCssPath, 'utf-8');
+    assert.ok(miniCssContent.length > 100, 'miniplayer.css deve possuir conteúdo substancial');
+  });
+
+  await runTest('CSS', 'Sintaxe miniplayer.css válida com balanceamento exato de chaves { e }', () => {
+    let openBraces = 0;
+    let closeBraces = 0;
+    for (const char of miniCssContent) {
+      if (char === '{') openBraces++;
+      if (char === '}') closeBraces++;
+    }
+    assert.ok(openBraces > 0, 'Deve conter declarações de blocos CSS em miniplayer.css');
+    assert.strictEqual(openBraces, closeBraces, `Chaves abertas (${openBraces}) e fechadas (${closeBraces}) devem coincidir em miniplayer.css`);
+  });
+
+  await runTest('CSS', 'Presença de seletores dos modos Pill e Expanded no miniplayer.css', () => {
+    assert.ok(miniCssContent.includes('.miniplayer-container'), 'Deve conter seletor .miniplayer-container');
+    assert.ok(miniCssContent.includes('.pill'), 'Deve conter seletor .pill');
+    assert.ok(miniCssContent.includes('.expanded'), 'Deve conter seletor .expanded');
+    assert.ok(miniCssContent.includes('.progress-bar'), 'Deve conter seletor .progress-bar');
+    assert.ok(miniCssContent.includes('#0f0f0f') || miniCssContent.includes('#0F0F0F'), 'Deve conter cor de fundo escura do YouTube');
+    assert.ok(miniCssContent.includes('#ff0000') || miniCssContent.includes('#FF0000'), 'Deve conter cor de destaque vermelha do YouTube');
   });
 
   // --------------------------------------------------------------------------
@@ -526,6 +572,20 @@ async function main() {
     assert.ok(jsContent.includes('const YouTubeLooperCore ='), 'Deve definir o objeto YouTubeLooperCore');
     assert.ok(jsContent.includes('module.exports = YouTubeLooperCore'), 'Deve suportar module.exports para testes e automações');
     assert.ok(jsContent.includes('global.YouTubeLooperCore = YouTubeLooperCore'), 'Deve expor global.YouTubeLooperCore para o navegador');
+  });
+
+  await runTest('JavaScript', 'Presença das funcionalidades v1.1.0 (AdDestroyer, MiniPlayerController, createPipButton, renderMiniPlayerHTML)', () => {
+    const v11Functions = [
+      'createPipButton',
+      'injectPipButton',
+      'renderMiniPlayerHTML'
+    ];
+    for (const fnName of v11Functions) {
+      assert.ok(jsContent.includes(fnName), `content.js deve conter a função/método ${fnName}`);
+      assert.strictEqual(typeof YouTubeLooperCore[fnName], 'function', `YouTubeLooperCore deve exportar ${fnName}`);
+    }
+    assert.ok(YouTubeLooperCore.MiniPlayerController, 'YouTubeLooperCore deve exportar MiniPlayerController');
+    assert.ok(YouTubeLooperCore.AdDestroyer, 'YouTubeLooperCore deve exportar AdDestroyer');
   });
 
   // --------------------------------------------------------------------------
@@ -723,6 +783,29 @@ async function main() {
     assert.ok(injectedBtn.classList.contains('active'), 'Botão reinjetado deve refletir estado ativo');
     assert.strictEqual(videoElement.loop, true, 'Vídeo da nova página deve ser colocado em repetição');
   });
+
+  // --------------------------------------------------------------------------
+  // SUÍTE 6: EXECUÇÃO DAS SUÍTES ESPECIALIZADAS (AD DESTROYER & MINI PLAYER PIP)
+  // --------------------------------------------------------------------------
+  console.log('\n[SUÍTE 6] Execução das Suítes Especializadas (Ad Destroyer & Mini Player PiP)');
+  const childSuites = [
+    { file: 'test-ad-destroyer.js', desc: 'Motor Ad Destroyer (Detecção e Aceleração de Anúncios)' },
+    { file: 'test-miniplayer-dom.js', desc: 'Mini Player DOM & Folha de Estilos (Modos Pílula e Expandido)' },
+    { file: 'test-pip-manager.js', desc: 'MiniPlayerController & Document Picture-in-Picture' },
+    { file: 'test-playback-sync.js', desc: 'Sincronização Bidirecional e Controles no PiP' },
+    { file: 'test-pip-trigger.js', desc: 'Gatilhos de Inicialização, Botão PiP e Atalho Shift+P' }
+  ];
+
+  for (const suite of childSuites) {
+    await runTest('Integration', `Execução da suíte ${suite.file} (${suite.desc})`, () => {
+      const suitePath = path.join(ROOT_DIR, suite.file);
+      assert.strictEqual(fs.existsSync(suitePath), true, `Script de teste ${suite.file} deve existir`);
+      const res = cp.spawnSync(process.execPath, [suitePath], { cwd: ROOT_DIR, encoding: 'utf-8' });
+      if (res.status !== 0) {
+        throw new Error(`Falha na suíte ${suite.file} (exit code ${res.status}):\n${res.stderr || res.stdout}`);
+      }
+    });
+  }
 
   // --------------------------------------------------------------------------
   // RESUMO E FINALIZAÇÃO DA BATERIA DE TESTES

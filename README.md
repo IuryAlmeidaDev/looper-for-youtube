@@ -1,8 +1,9 @@
 # 🔁 Looper for YouTube - Music & Video Repeat
 
-> **Extensão leve, elegante e de alta performance para repetição contínua e automática de vídeos e músicas no YouTube.**
+> **Extensão leve, elegante e de alta performance para repetição contínua, Mini Player flutuante sempre no topo (*Document Picture-in-Picture*) e reprodução sem anúncios no YouTube.**
 
 ![Manifest V3](https://img.shields.io/badge/Manifest-V3-success?style=flat-square)
+![Versão](https://img.shields.io/badge/Versão-1.1.0-brightgreen?style=flat-square)
 ![Plataforma](https://img.shields.io/badge/Plataforma-Chromium-blue?style=flat-square)
 ![Privacidade](https://img.shields.io/badge/Privacidade-100%25%20Local-brightgreen?style=flat-square)
 ![Sem Dependências](https://img.shields.io/badge/Dependências-Zero-blueviolet?style=flat-square)
@@ -11,31 +12,50 @@
 
 ## 📖 Visão Geral
 
-O **Looper for YouTube** adiciona um botão nativo de repetição diretamente à barra de controles do player do YouTube (`https://www.youtube.com`), permitindo que você ouça suas músicas, batidas de estudo, tutoriais ou qualquer vídeo em looping infinito sem precisar clicar com o botão direito a cada nova reprodução.
+O **Looper for YouTube** transforma a sua experiência no YouTube (`https://www.youtube.com`), integrando três pilares essenciais diretamente na interface nativa do player:
 
-Projetada seguindo as diretrizes modernas do **Manifest V3**, a extensão opera de forma **100% client-side**, sem rastreamento, sem coleta de dados e sem bibliotecas externas pesadas, garantindo inicialização instantânea e baixíssimo consumo de memória.
+1. **Repetição Contínua Automática**: Botão de loop integrado e atalho de teclado para ouvir músicas, batidas lo-fi de estudo ou tutoriais em repetição contínua sem interrupções.
+2. **Mini Player Flutuante (*Document Picture-in-Picture*)**: Janela flutuante real mantida sempre no topo pelo sistema operacional (estilo "Always-on-Top"), com sincronização bidirecional de reprodução em tempo real e alternância entre os modos **Pílula** e **Expandido**.
+3. **Motor Ad Destroyer**: Detecção e aceleração ultrarrápida (16x + mudo instantâneo) de propagandas e fechamento automático de banners, garantindo foco total nas suas faixas.
+
+Projetada rigorosamente no modelo **Manifest V3**, a extensão é 100% client-side, opera com zero dependências externas e tem impacto residual imperceptível na CPU e na memória.
 
 ---
 
 ## ✨ Recursos Principais
 
-- 🔘 **Botão Nativo Integrado**: Inserido diretamente nos controles inferiores esquerdos do player do YouTube (`.ytp-left-controls`), ao lado dos botões de reprodução e volume, com ícone vetorial SVG e ponto indicador luminoso de status.
-- ⚡ **Atalho de Teclado Rápido (`Shift + L`)**: Ative ou desative o modo de repetição instantaneamente em qualquer tela cheia ou janela sem precisar mover o cursor do mouse.
-- 💬 **Feedback Visual com Notificação Toast**: Exibe um aviso flutuante elegante na parte superior do vídeo informando `"Repetição ativada (Shift+L)"` ou `"Repetição desativada (Shift+L)"`.
-- 💾 **Persistência Inteligente de Estado**: Sua preferência de repetição fica gravada no armazenamento do navegador (`chrome.storage.local` com fallback transparente para `localStorage`). Se você ativar a repetição, ela continuará ativa para os próximos vídeos que você abrir.
-- 🛡️ **Prevenção contra Digitação Acidental**: O atalho `Shift + L` é suspenso de forma inteligente quando você está digitando na barra de pesquisa do YouTube, na caixa de comentários ou em qualquer elemento editável (`contenteditable`).
-- 🔄 **Compatibilidade com YouTube SPA (Single Page Application)**: Gerencia transições de páginas sem recarregamento (`yt-navigate-finish`) e recriações dinâmicas de interface (`MutationObserver`), garantindo que o botão permaneça ativo mesmo após horas de navegação ininterrupta.
+### 🔁 Repetição de Áudio e Vídeo
+- 🔘 **Botão Nativo Integrado**: Inserido na barra inferior esquerda (`.ytp-left-controls`), ao lado dos botões de reprodução e volume, com ícone vetorial SVG e ponto luminoso de estado ativo.
+- ⚡ **Atalho Rápido (`Shift + L`)**: Ative ou desative o modo de repetição instantaneamente em qualquer aba ou modo de tela cheia.
+- 💬 **Feedback com Notificação Toast**: Aviso flutuante elegante na área do vídeo informando `"Repetição ativada (Shift+L)"` ou `"Repetição desativada (Shift+L)"`.
 - 🚀 **Redundância Dupla de Repetição**: Sincroniza a propriedade nativa `video.loop = true` do HTML5 e conta com um listener de fallback para o evento `ended`, garantindo que streams com buffers DASH/HLS nunca congelem no final da faixa.
-- 📱 **Compatibilidade com Modos do Player**: Design totalmente adaptável ao modo padrão, modo teatro, tela cheia (*fullscreen*) e miniplayer.
-- 🔒 **Privacidade Absoluta**: Zero telemetria, zero anúncios, zero conexões externas.
+
+### 🪟 Mini Player Flutuante (*Document Picture-in-Picture*)
+- 📌 **Always on Top Real**: Abre uma janela flutuante independente mantida no topo de qualquer outro software ou aplicativo aberto no seu computador através da API `documentPictureInPicture`.
+- ⚡ **Atalho Dedicado (`Shift + P`)**: Abra ou foque a janela PiP instantaneamente, ou use o botão flutuante integrado ao player do YouTube.
+- 💊 **Modo Pílula (~54px de altura, 340px de largura)**: Interface ultra-compacta inspirada em tocadores modernos de podcast/música. Exibe o título da faixa em reprodução, botão de voltar/início, play/pause, avançar, alternar repetição contínua, botão para expandir e botão de fechar.
+- 🖼️ **Modo Expandido (~180px de altura, 340px de largura)**: Visão completa com capa/miniatura (*thumbnail*), título, nome do canal, barra de progresso interativa para avanço rápido (*seek/scrubbing* com proteção contra descarte durante arraste), tempo decorrido e total.
+- 🔄 **Sincronização Bidirecional Contínua**: Alterações feitas no Mini Player (play, pause, avanço, loop) refletem imediatamente no player da aba principal e vice-versa.
+- 💾 **Memória de Modo**: Lembra se você prefere o modo Pílula ou Expandido entre as sessões.
+
+### 🛡️ Motor Ad Destroyer
+- ⚡ **Detecção em Tempo Real**: Monitora dinamicamente a reprodução de blocos de anúncios (`.ad-interrupting`, `.html5-video-player.ad-showing`).
+- ⏩ **Aceleração 16x & Mute Automático**: Silencia instantaneamente o áudio da propaganda e avança a velocidade para 16x, saltando direto para o final em milissegundos.
+- 🎯 **Clique Automático em "Pular Anúncio"**: Pressiona imediatamente os botões `.ytp-ad-skip-button`, `.ytp-ad-skip-button-modern` e fecha sobreposições de banners.
+- 🔊 **Restauração Transparente**: Retorna o volume e a velocidade originais do seu vídeo imediatamente quando o conteúdo principal é retomado.
+
+### 🛡️ Segurança e Usabilidade
+- 🛡️ **Prevenção contra Digitação Acidental**: Atalhos `Shift + L` e `Shift + P` são ignorados quando o cursor estiver em caixas de comentários, barra de pesquisa ou áreas de texto editáveis (`contenteditable`).
+- 🔄 **Compatibilidade com YouTube SPA**: Gerencia mudanças de rota sem recarregamento (`yt-navigate-finish`), mantendo os botões injetados e metadados sincronizados.
+- 🔒 **Privacidade Absoluta**: Sem telemetria, sem coleta de dados e sem conexão com servidores de terceiros.
 
 ---
 
 ## 📥 Como Instalar (Navegadores Chromium)
 
-A extensão é compatível com **todos** os navegadores modernos baseados no motor Chromium: **Google Chrome**, **Microsoft Edge**, **Brave Browser**, **Opera / Opera GX**, **Vivaldi**, entre outros.
+Compatível com **Google Chrome**, **Microsoft Edge**, **Brave Browser**, **Opera / Opera GX**, **Vivaldi** e outros navegadores Chromium.
 
-### Passo 1: Abrir a Central de Extensões do seu Navegador
+### Passo 1: Abrir a Central de Extensões
 
 Digite o endereço correspondente na barra de endereços do seu navegador e pressione `Enter`:
 
@@ -51,14 +71,14 @@ Digite o endereço correspondente na barra de endereços do seu navegador e pres
 
 ### Passo 2: Ativar o Modo do Desenvolvedor
 
-No canto superior direito da página de extensões, localize e ative a chave seletora **"Modo do desenvolvedor"** (ou *Developer mode*).
+No canto superior direito da página de extensões, ative a chave seletora **"Modo do desenvolvedor"** (*Developer mode*).
 
 ---
 
 ### Passo 3: Carregar a Extensão sem Compactação
 
-1. No canto superior esquerdo que acabou de surgir, clique no botão **"Carregar sem compactação"** (ou *Load unpacked*).
-2. Na janela de seleção de pastas, navegue até a pasta da extensão e selecione-a:
+1. Clique no botão **"Carregar sem compactação"** (*Load unpacked*).
+2. Selecione a pasta da extensão:
    ```text
    C:\Users\03573608183\youtube-loop-extension
    ```
@@ -68,24 +88,26 @@ No canto superior direito da página de extensões, localize e ative a chave sel
 
 ### Passo 4: Pronto!
 
-O card **Looper for YouTube** aparecerá ativo na lista de extensões instaladas. 
-
-Abra o [YouTube](https://www.youtube.com), reproduza qualquer vídeo e observe o novo botão de loop integrado logo ao lado do controle de volume!
+O card **Looper for YouTube** (v1.1.0) estará ativo. Abra o [YouTube](https://www.youtube.com), reproduza qualquer vídeo e aproveite todos os controles!
 
 ---
 
 ## 🎮 Como Usar
 
-### 1. Pelo Botão do Player
-1. Posicione o mouse sobre o player de vídeo do YouTube para exibir os controles.
-2. Localize o ícone de repetição (duas setas em círculo) localizado na barra inferior esquerda.
-3. Clique no botão:
-   - **Ativado**: O ícone fica vermelho vívido (`#ff0000`), um ponto luminoso surge na base do botão e o Toast confirma *"Repetição ativada (Shift+L)"*.
-   - **Desativado**: O ícone retorna ao tom branco semitransparente padrão e o Toast confirma *"Repetição desativada (Shift+L)"*.
+### 1. Repetição Contínua (Loop)
+- **Pelo Botão**: Clique no ícone de repetição na barra de controles do vídeo (ele ficará vermelho vívido `#ff0000`).
+- **Pelo Atalho**: Pressione `Shift + L` a qualquer momento.
 
-### 2. Pelo Atalho de Teclado
-- A qualquer momento durante a reprodução, pressione `Shift + L` no teclado.
-- O loop será alternado imediatamente com o mesmo feedback visual instantâneo na tela.
+### 2. Mini Player Flutuante (Picture-in-Picture)
+- **Pelo Botão**: Clique no ícone do Mini Player flutuante posicionado logo após o botão de loop.
+- **Pelo Atalho**: Pressione `Shift + P` para abrir a janela flutuante sempre no topo.
+- **Alternar Modos**: Clique no botão central de alternância (`▲` para expandir ou `▼` para recolher em pílula).
+- **Controle de Faixa**:
+  - `⏮`: Se o vídeo tiver passado de 3 segundos, volta ao início; caso contrário, vai para o vídeo anterior da playlist/histórico.
+  - `⏯`: Alterna entre Play e Pause.
+  - `⏭`: Pula para o próximo vídeo da fila ou recomendação.
+  - `🔁`: Alterna a repetição contínua em tempo real.
+  - Barra de Progresso (no Modo Expandido): Clique ou arraste para navegar no vídeo.
 
 ---
 
@@ -94,51 +116,55 @@ Abra o [YouTube](https://www.youtube.com), reproduza qualquer vídeo e observe o
 | Ação | Método | Descrição |
 | :--- | :---: | :--- |
 | **Alternar Repetição** | `Shift + L` | Alterna entre loop ativado e desativado instantaneamente. |
-| **Alternar via Mouse** | Clique no botão | Alterna o loop e atualiza o estado persistido. |
-| **Digitação Segura** | Automático | O atalho `Shift + L` é ignorado quando você estiver escrevendo comentários ou pesquisando vídeos. |
-| **Persistência** | Automático | O estado configurado é salvo e mantido para os próximos vídeos reproduzidos na sessão. |
+| **Abrir/Focar Mini Player** | `Shift + P` | Abre a janela flutuante Always-on-Top ou traz o foco para ela. |
+| **Controles pelo Mouse** | Botões no Player | Botões dedicados de Loop e Mini Player na barra inferior do vídeo. |
+| **Alternar Modo do Mini Player** | Botão `▲ / ▼` | Alterna entre o Modo Pílula (~54px) e o Modo Expandido (~180px). |
+| **Digitação Segura** | Automático | Atalhos são ignorados durante a escrita de comentários ou pesquisas. |
+| **Persistência de Preferências** | Automático | Salva estado do loop e último modo do Mini Player para vídeos futuros. |
+| **Ad Destroyer** | Automático | Acelera anúncios para 16x com mute automático e pula no primeiro instante possível. |
 
 ---
 
 ## ❓ Solução de Dúvidas (Troubleshooting)
 
+### A janela do Mini Player não abre
+- Certifique-se de estar usando uma versão moderna do navegador baseada em Chromium que suporte `documentPictureInPicture` (disponível por padrão no Chrome/Edge modernos).
+- Se a janela já estiver aberta em segundo plano, pressionar `Shift + P` ou clicar no botão PiP trará a janela imediatamente para o foco.
+
 ### O botão não apareceu imediatamente no vídeo
-- **Causa**: O YouTube pode já estar aberto em abas antigas antes do carregamento da extensão.
-- **Solução**: Atualize a página do YouTube pressionando `F5` ou `Ctrl + F5`. O content script será injetado automaticamente.
+- Se a página do YouTube já estava aberta antes de instalar a extensão, pressione `F5` ou `Ctrl + F5` para atualizar o content script.
 
-### Pressionei `Shift + L` e nada aconteceu
-- **Causa**: O foco do cursor pode estar dentro de um campo de texto (barra de busca do YouTube, caixa de comentários ou resposta rápida).
-- **Solução**: Por segurança contra acionamentos acidentais ao digitar palavras que contenham a letra "L" maiúscula, a extensão desativa o atalho em campos de formulário. Basta clicar fora da caixa de texto (no vídeo ou no fundo da página) e pressionar `Shift + L` novamente.
+### Pressionei `Shift + L` ou `Shift + P` e nada aconteceu
+- Verifique se o foco do cursor não está em um campo de formulário (busca ou comentários). Clique fora do campo e pressione o atalho novamente.
 
-### Como atualizar a extensão após modificar os arquivos?
-- Acesse `chrome://extensions/` (ou a página de extensões do seu navegador) e clique no ícone de atualização circular (🔄) presente no card do **Looper for YouTube**.
-
-### A repetição parou após muitas horas ininterruptas
-- **Causa**: O próprio YouTube possui um mecanismo nativo de proteção contra inatividade ("O vídeo foi pausado. Continuar assistindo?").
-- **Solução**: Basta clicar na tela para confirmar que você ainda está assistindo. O loop continuará normalmente a partir desse ponto.
+### Como recarregar a extensão após atualizações?
+- Acesse `chrome://extensions/` e clique no ícone de atualização circular (🔄) no card da extensão.
 
 ---
 
 ## 🧪 Testes Automatizados de Integridade
 
-O projeto conta com uma suíte de testes automatizados que verifica todos os componentes da extensão (Manifest V3, ícones PNG, sintaxe CSS e runtime JS).
+O projeto conta com uma suíte abrangente de testes automatizados com cobertura estática, sintática, DOM e testes funcionais assíncronos.
 
-Para executar os testes:
+Para executar a validação completa:
 
 ```bash
-# Navegue até a pasta da extensão
 cd C:\Users\03573608183\youtube-loop-extension
-
-# Execute a suíte de integridade
 node test-extension.js
 ```
 
 ### O que a suíte valida:
-1. **Manifest V3**: Validade do JSON, versão do manifest, permissões de armazenamento, permissões de host e caminhos de arquivos.
-2. **Ícones PNG**: Existência física, tamanho de bytes, assinatura mágica PNG (`89 50 4E 47 0D 0A 1A 0A`) e resolução exata de cada ícone (16x16, 48x48, 128x128).
-3. **Folha de Estilos (`content.css`)**: Integridade sintática, balanceamento de chaves, classes do botão, classes do Toast, animações `@keyframes` e seletores responsivos.
-4. **Script de Conteúdo (`content.js`)**: Análise sintática JavaScript, exportações do `YouTubeLooperCore` e todas as funções do ciclo de vida.
-5. **Runtime e Integração**: Simulação de injeção de DOM, alternância de classes, controle do elemento `<video>`, despacho de eventos `ended`, Toast feedback e prevenção de foco em inputs.
+1. **Manifest V3**: Validação rigorosa do JSON, versão `1.1.0`, permissões (`storage`, `host_permissions`), content scripts e declaração de `web_accessible_resources` (`miniplayer.css`).
+2. **Ícones PNG**: Existência física, tamanho em bytes, cabeçalho de assinatura PNG (`89 50 4E 47 0D 0A 1A 0A`) e resoluções exatas (16x16, 48x48, 128x128).
+3. **Folhas de Estilo (`content.css` & `miniplayer.css`)**: Integridade sintática, balanceamento exato de chaves, seletores do botão de loop, botão PiP, Toast flutuante, animações `@keyframes` e seletores responsivos dos modos Pílula e Expandido.
+4. **Script de Conteúdo (`content.js`)**: Análise sintática JavaScript no compilador do Node.js, exportações modulares e existência de todos os métodos das classes de controle (`AdDestroyer`, `MiniPlayerController`, `renderMiniPlayerHTML`).
+5. **Runtime & Integração**: Simulação de eventos DOM, alternância de classes, controle do elemento `<video>`, despacho de eventos `ended`, Toast feedback e prevenção de foco em inputs.
+6. **Suítes Filhas Especializadas**:
+   - `test-ad-destroyer.js`: Validação do motor de detecção e aceleração de propagandas.
+   - `test-miniplayer-dom.js`: Geração de markup HTML, modos Pílula/Expandido e sanitização XSS.
+   - `test-pip-manager.js`: Gerenciador da janela PiP, controle de ciclo de vida e persistência de modo.
+   - `test-playback-sync.js`: Sincronização bidirecional de eventos de reprodução, progresso e atalhos.
+   - `test-pip-trigger.js`: Injeção de botão PiP, posicionamento na barra de controles e atalho `Shift + P`.
 
 ---
 
@@ -153,10 +179,10 @@ powershell -ExecutionPolicy Bypass -File .\package-extension.ps1
 
 O arquivo compactado pronto para envio será gerado em:
 ```text
-dist/looper-for-youtube-v1.0.0.zip
+dist/looper-for-youtube-v1.1.0.zip
 ```
 
-> **Nota de Conformidade:** O pacote inclui apenas os arquivos de produção exigidos pelo Google (`manifest.json`, `content.js`, `content.css` e pasta `icons/`), ignorando testes, documentações e arquivos de desenvolvimento.
+> **Nota de Conformidade:** O pacote inclui estritamente os 5 arquivos de produção exigidos pelo Google (`manifest.json`, `content.js`, `content.css`, `miniplayer.css` e pasta `icons/`), ignorando testes, documentações e arquivos de desenvolvimento.
 
 ---
 
@@ -164,18 +190,25 @@ dist/looper-for-youtube-v1.0.0.zip
 
 ```text
 looper-for-youtube/
-├── manifest.json         # Configuração oficial do Manifest V3 da extensão
-├── content.js            # Content script com lógica de controle do player e atalhos
-├── content.css           # Estilos visuais do botão, estados ativos e Toast flutuante
-├── icons/                # Ícones da extensão nos formatos padrão
-│   ├── icon16.png        # Favicon / Toolbar (16x16)
-│   ├── icon48.png        # Gerenciador de extensões (48x48)
-│   └── icon128.png       # Chrome Web Store / Alta resolução (128x128)
-├── dist/                 # Pacote .zip gerado para publicação (ignorado no git)
-├── test-extension.js     # Suíte automatizada de validação estática e runtime
-├── package-extension.ps1 # Script para empacotamento .zip de produção
-├── generate-icons.ps1    # Script utilitário para regeneração dos ícones
-└── README.md             # Guia completo de instalação e documentação
+├── manifest.json            # Configuração oficial do Manifest V3 da extensão (v1.1.0)
+├── content.js               # Script central: Loop, Mini Player Controller e Ad Destroyer
+├── content.css              # Estilos do botão de loop, botão PiP e notificação Toast
+├── miniplayer.css           # Estilos dedicados da janela PiP (Modos Pílula e Expandido)
+├── icons/                   # Ícones oficiais da extensão
+│   ├── icon16.png           # Favicon / Toolbar (16x16)
+│   ├── icon48.png           # Gerenciador de extensões (48x48)
+│   └── icon128.png          # Chrome Web Store / Alta resolução (128x128)
+├── dist/                    # Pacote .zip gerado para publicação (ignorado no git)
+│   └── looper-for-youtube-v1.1.0.zip
+├── package-extension.ps1    # Script para empacotamento do pacote de produção .zip
+├── generate-icons.ps1       # Script utilitário para regeneração dos ícones PNG
+├── test-extension.js        # Suíte principal que integra todas as baterias de testes
+├── test-ad-destroyer.js     # Testes do motor de mitigação de anúncios
+├── test-miniplayer-dom.js   # Testes de geração DOM e estilos do Mini Player
+├── test-pip-manager.js      # Testes de ciclo de vida da janela Document PiP
+├── test-playback-sync.js    # Testes de sincronização de reprodução e eventos
+├── test-pip-trigger.js      # Testes do botão de acionamento e atalho Shift+P
+└── README.md                # Guia completo de instalação, uso e documentação técnica
 ```
 
 ---

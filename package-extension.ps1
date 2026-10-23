@@ -28,6 +28,7 @@ New-Item -ItemType Directory -Path $tempStagingDir | Out-Null
 Copy-Item (Join-Path $repoRoot "manifest.json") -Destination $tempStagingDir
 Copy-Item (Join-Path $repoRoot "content.js") -Destination $tempStagingDir
 Copy-Item (Join-Path $repoRoot "content.css") -Destination $tempStagingDir
+Copy-Item (Join-Path $repoRoot "miniplayer.css") -Destination $tempStagingDir
 Copy-Item (Join-Path $repoRoot "icons") -Destination $tempStagingDir -Recurse
 
 # Cria o arquivo ZIP
