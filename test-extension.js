@@ -1,6 +1,6 @@
 /**
  * Teste Automatizado de Integridade da Extensão
- * YouTube Music & Video Looper (Manifest V3)
+ * Looper for YouTube - Music & Video Repeat (Manifest V3)
  *
  * Executa validações estáticas e de tempo de execução sobre todos os artefatos:
  * 1. manifest.json (Formato MV3, permissões, content scripts e arquivos referenciados)
@@ -335,7 +335,7 @@ function setupYouTubeDomEnvironment() {
 // ============================================================================
 async function main() {
   console.log('================================================================');
-  console.log('   YouTube Music & Video Looper - Teste Automatizado Integrado   ');
+  console.log('   Looper for YouTube - Teste Automatizado Integrado            ');
   console.log('================================================================');
 
   // --------------------------------------------------------------------------
@@ -363,7 +363,8 @@ async function main() {
   });
 
   await runTest('Manifest', 'Metadados obrigatórios presentes e válidos (name, version, description)', () => {
-    assert.strictEqual(manifest.name, 'YouTube Music & Video Looper', 'name deve ser "YouTube Music & Video Looper"');
+    assert.strictEqual(manifest.name, 'Looper for YouTube - Music & Video Repeat', 'name deve ser "Looper for YouTube - Music & Video Repeat"');
+    assert.strictEqual(manifest.short_name, 'Looper for YouTube', 'short_name deve ser "Looper for YouTube"');
     assert.ok(typeof manifest.version === 'string' && manifest.version.length > 0, 'version deve ser preenchida');
     assert.ok(typeof manifest.description === 'string' && manifest.description.length > 0, 'description deve ser preenchida');
   });

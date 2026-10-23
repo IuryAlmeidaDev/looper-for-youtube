@@ -1,6 +1,7 @@
 {
   "manifest_version": 3,
-  "name": "YouTube Music & Video Looper",
+  "name": "Looper for YouTube - Music & Video Repeat",
+  "short_name": "Looper for YouTube",
   "version": "1.0.0",
   "description": "Repita músicas e vídeos do YouTube automaticamente com botão integrado e atalho Shift+L.",
   "permissions": [

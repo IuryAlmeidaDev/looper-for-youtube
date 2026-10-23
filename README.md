@@ -1,4 +1,4 @@
-# 🔁 YouTube Music & Video Looper
+# 🔁 Looper for YouTube - Music & Video Repeat
 
 > **Extensão leve, elegante e de alta performance para repetição contínua e automática de vídeos e músicas no YouTube.**
 
@@ -11,7 +11,7 @@
 
 ## 📖 Visão Geral
 
-O **YouTube Music & Video Looper** adiciona um botão nativo de repetição diretamente à barra de controles do player do YouTube (`https://www.youtube.com`), permitindo que você ouça suas músicas, batidas de estudo, tutoriais ou qualquer vídeo em looping infinito sem precisar clicar com o botão direito a cada nova reprodução.
+O **Looper for YouTube** adiciona um botão nativo de repetição diretamente à barra de controles do player do YouTube (`https://www.youtube.com`), permitindo que você ouça suas músicas, batidas de estudo, tutoriais ou qualquer vídeo em looping infinito sem precisar clicar com o botão direito a cada nova reprodução.
 
 Projetada seguindo as diretrizes modernas do **Manifest V3**, a extensão opera de forma **100% client-side**, sem rastreamento, sem coleta de dados e sem bibliotecas externas pesadas, garantindo inicialização instantânea e baixíssimo consumo de memória.
 
@@ -68,7 +68,7 @@ No canto superior direito da página de extensões, localize e ative a chave sel
 
 ### Passo 4: Pronto!
 
-O card **YouTube Music & Video Looper** aparecerá ativo na lista de extensões instaladas. 
+O card **Looper for YouTube** aparecerá ativo na lista de extensões instaladas. 
 
 Abra o [YouTube](https://www.youtube.com), reproduza qualquer vídeo e observe o novo botão de loop integrado logo ao lado do controle de volume!
 
@@ -111,7 +111,7 @@ Abra o [YouTube](https://www.youtube.com), reproduza qualquer vídeo e observe o
 - **Solução**: Por segurança contra acionamentos acidentais ao digitar palavras que contenham a letra "L" maiúscula, a extensão desativa o atalho em campos de formulário. Basta clicar fora da caixa de texto (no vídeo ou no fundo da página) e pressionar `Shift + L` novamente.
 
 ### Como atualizar a extensão após modificar os arquivos?
-- Acesse `chrome://extensions/` (ou a página de extensões do seu navegador) e clique no ícone de atualização circular (🔄) presente no card do **YouTube Music & Video Looper**.
+- Acesse `chrome://extensions/` (ou a página de extensões do seu navegador) e clique no ícone de atualização circular (🔄) presente no card do **Looper for YouTube**.
 
 ### A repetição parou após muitas horas ininterruptas
 - **Causa**: O próprio YouTube possui um mecanismo nativo de proteção contra inatividade ("O vídeo foi pausado. Continuar assistindo?").
@@ -142,10 +142,28 @@ node test-extension.js
 
 ---
 
+## 📦 Como Gerar o Pacote para a Chrome Web Store
+
+Para publicar a extensão na [Chrome Web Store](https://chrome.google.com/webstore/devconsole), execute o script de empacotamento:
+
+```powershell
+# Na raiz do projeto:
+powershell -ExecutionPolicy Bypass -File .\package-extension.ps1
+```
+
+O arquivo compactado pronto para envio será gerado em:
+```text
+dist/looper-for-youtube-v1.0.0.zip
+```
+
+> **Nota de Conformidade:** O pacote inclui apenas os arquivos de produção exigidos pelo Google (`manifest.json`, `content.js`, `content.css` e pasta `icons/`), ignorando testes, documentações e arquivos de desenvolvimento.
+
+---
+
 ## 📁 Estrutura de Arquivos
 
 ```text
-youtube-loop-extension/
+looper-for-youtube/
 ├── manifest.json         # Configuração oficial do Manifest V3 da extensão
 ├── content.js            # Content script com lógica de controle do player e atalhos
 ├── content.css           # Estilos visuais do botão, estados ativos e Toast flutuante
@@ -153,7 +171,9 @@ youtube-loop-extension/
 │   ├── icon16.png        # Favicon / Toolbar (16x16)
 │   ├── icon48.png        # Gerenciador de extensões (48x48)
 │   └── icon128.png       # Chrome Web Store / Alta resolução (128x128)
+├── dist/                 # Pacote .zip gerado para publicação (ignorado no git)
 ├── test-extension.js     # Suíte automatizada de validação estática e runtime
+├── package-extension.ps1 # Script para empacotamento .zip de produção
 ├── generate-icons.ps1    # Script utilitário para regeneração dos ícones
 └── README.md             # Guia completo de instalação e documentação
 ```

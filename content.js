@@ -1,5 +1,5 @@
 /**
- * YouTube Music & Video Looper - Content Script (content.js)
+ * Looper for YouTube - Content Script (content.js)
  * Compatível com Manifest V3, Modo Normal, Teatro, Fullscreen e Miniplayer
  */
 (function (global) {
