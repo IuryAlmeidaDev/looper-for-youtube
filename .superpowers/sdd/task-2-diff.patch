@@ -1,0 +1,110 @@
+﻿content.css | 238 ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+ 1 file changed, 238 insertions(+)
+
+Changes:
+
+content.css
+  @@ -0,0 +1,238 @@
+  +/* ==========================================================================
+  +   YouTube Music & Video Looper - Content Styles (content.css)
+  +   Compatível com Manifest V3, Modo Normal, Teatro, Fullscreen e Miniplayer
+  +   ========================================================================== */
+  +
+  +/* --------------------------------------------------------------------------
+  +   1. Player Controls Loop Button (.ytp-button.ytp-loop-button)
+  +   -------------------------------------------------------------------------- */
+  +
+  +.ytp-button.ytp-loop-button,
+  +.ytp-loop-button {
+  +  display: inline-flex;
+  +  align-items: center;
+  +  justify-content: center;
+  +  position: relative;
+  +  vertical-align: top;
+  +  cursor: pointer;
+  +  user-select: none;
+  +  -webkit-user-select: none;
+  +  transition: opacity 0.2s ease, transform 0.2s ease;
+  +}
+  +
+  +/* Loop button SVG icon */
+  +.ytp-button.ytp-loop-button svg,
+  +.ytp-loop-button svg {
+  +  width: 100%;
+  +  height: 100%;
+  +  max-width: 36px;
+  +  max-height: 36px;
+  +  pointer-events: none;
+  +  transition: transform 0.2s ease;
+  +}
+  +
+  +/* Default (inactive) state */
+  +.ytp-button.ytp-loop-button svg path,
+  +.ytp-button.ytp-loop-button svg .ytp-svg-fill,
+  +.ytp-loop-button svg path,
+  +.ytp-loop-button svg .ytp-svg-fill {
+  +  fill: #ffffff;
+  +  fill-opacity: 0.85;
+  +  transition: fill 0.2s ease, fill-opacity 0.2s ease, filter 0.2s ease;
+  +}
+  +
+  +/* Hover state */
+  +.ytp-button.ytp-loop-button:hover,
+  +.ytp-loop-button:hover {
+  +  opacity: 1;
+  +}
+  +
+  +.ytp-button.ytp-loop-button:hover svg path,
+  +.ytp-button.ytp-loop-button:hover svg .ytp-svg-fill,
+  +.ytp-loop-button:hover svg path,
+  +.ytp-loop-button:hover svg .ytp-svg-fill {
+  +  fill: #ffffff;
+  +  fill-opacity: 1;
+  +}
+  +
+  +.ytp-button.ytp-loop-button:hover svg,
+  +.ytp-loop-button:hover svg {
+  +  transform: scale(1.08);
+  +}
+  +
+  +/* Active state (Loop Ativo) */
+  +.ytp-button.ytp-loop-button.active svg path,
+  +.ytp-button.ytp-loop-button.active svg .ytp-svg-fill,
+  +.ytp-loop-button.active svg path,
+  +.ytp-loop-button.active svg .ytp-svg-fill {
+  +  fill: #ff0000;
+  +  fill-opacity: 1;
+  +  filter: drop-shadow(0 0 3px rgba(255, 0, 0, 0.65));
+  +}
+  +
+  +.ytp-button.ytp-loop-button.active:hover svg path,
+  +.ytp-button.ytp-loop-button.active:hover svg .ytp-svg-fill,
+  +.ytp-loop-button.active:hover svg path,
+  +.ytp-loop-button.active:hover svg .ytp-svg-fill {
+  +  fill: #ff3333;
+  +  fill-opacity: 1;
+  +  filter: drop-shadow(0 0 5px rgba(255, 51, 51, 0.85));
+  +}
+  +
+  +/* Active status indicator dot below button */
+  +.ytp-button.ytp-loop-button.active::after,
+  +.ytp-loop-button.active::after {
+  +  content: '';
+  +  position: absolute;
+  +  bottom: 6px;
+  +  left: 50%;
+  +  transform: translateX(-50%);
+  +  width: 4px;
+  +  height: 4px;
+  +  border-radius: 50%;
+  +  background-color: #ff0000;
+  +  box-shadow: 0 0 4px #ff0000;
+  +  pointer-events: none;
+  +  transition: background-color 0.2s ease, transform 0.2s ease;
+  +}
+  +
+  +/* --------------------------------------------------------------------------
+  +   2. Floating Toast Notification (.ytp-loop-toast)
+  ... (138 lines truncated)
+  +238 -0
+[full diff: rtk git diff --no-compact]
